@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
+import bans
 import db
 import routes.auth as auth
 
@@ -49,6 +50,20 @@ def store(monkeypatch):
     monkeypatch.setattr(db, "increment_verification_attempts", fake.increment)
     monkeypatch.setattr(db, "mark_email_verified", fake.mark_verified)
     return fake
+
+
+# Ban checks are tested in test_bans.py; here they allow everyone unless a test
+# lists emails to block
+@pytest.fixture(autouse=True)
+def blocked(monkeypatch):
+    blocked_emails = set()
+
+    def check(identifiers, context=None, strict=False, record=True):
+        emails = {value for kind, value in identifiers if kind == "email"}
+        return (bans.BLOCK, [("email", 1)]) if emails & blocked_emails else (bans.ALLOW, [])
+
+    monkeypatch.setattr(bans, "check_identity", check)
+    return blocked_emails
 
 
 # Collects sent emails instead of printing them
@@ -205,3 +220,22 @@ def test_code_bound_to_its_email(client, store, outbox):
     if auth.check_code(other_code, mine["code_hash"]):
         pytest.skip("both random codes matched")
     assert client.post(VERIFY, json={"email": EMAIL, "code": other_code}).status_code == 400
+
+
+# ---- banned emails ----
+
+def test_banned_email_gets_normal_reply_but_no_code(client, store, outbox, blocked):
+    blocked.add(EMAIL)
+    response = client.post(REQUEST, json={"email": EMAIL})
+    assert response.status_code == 200
+    assert response.get_json() == {"status": "code_sent"}
+    assert outbox == []
+    assert EMAIL not in store.rows
+
+
+def test_banned_email_cannot_verify(client, store, outbox, blocked):
+    client.post(REQUEST, json={"email": EMAIL})
+    blocked.add(EMAIL)
+    response = client.post(VERIFY, json={"email": EMAIL, "code": code_from(outbox)})
+    assert response.status_code == 403
+    assert store.rows[EMAIL]["verified"] is False
