@@ -2,7 +2,9 @@ from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, jsonify, request
 
+import bans
 import db
+from identity import client_ip_bucket
 from services.email_sender import send_email
 from services.verification import (
     CODE_EXPIRY_MINUTES,
@@ -18,6 +20,17 @@ from services.verification import (
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
 
+# Returns True if this email, device or network is banned.
+# The app sends its install id in the X-Device-Id header.
+def _blocked(email, context):
+    decision, _ = bans.check_identity([
+        ("email", email),
+        ("device", request.headers.get("X-Device-Id")),
+        ("ip", client_ip_bucket(request)),
+    ], context=context)
+    return decision == bans.BLOCK
+
+
 # POST /api/auth/request-code   body: {"email": "abc123@psu.edu"}
 # emails a 6-digit code to the user (also used to resend a code)
 @auth_bp.post("/request-code")
@@ -30,6 +43,11 @@ def request_code():
     email = normalize_email(email)
     if not is_psu_email(email):
         return jsonify({"error": "Please use your @psu.edu email"}), 400
+
+    # Banned people get the same reply as everyone else, but no code is sent,
+    # so the response can't be used to find out who is banned
+    if _blocked(email, "request-code"):
+        return jsonify({"status": "code_sent"}), 200
 
     now = datetime.now(timezone.utc)
     record = db.get_verification(email)
@@ -61,6 +79,9 @@ def verify():
         return jsonify({"error": "Email and code are required"}), 400
 
     email = normalize_email(email)
+    if _blocked(email, "verify"):
+        return jsonify({"error": "This email can't be verified"}), 403
+
     record = db.get_verification(email)
     if record is None:
         return jsonify({"error": "No code was requested for this email"}), 400

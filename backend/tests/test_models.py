@@ -1,5 +1,6 @@
 import pytest
 
+import bans
 import db
 from models.car import Car
 from models.user import User
@@ -61,6 +62,7 @@ def test_user_str_without_schedule():
 
 def test_make_driver_saves(monkeypatch):
     saved = []
+    monkeypatch.setattr(bans, "ensure_allowed", lambda identifiers, context=None: bans.ALLOW)
     monkeypatch.setattr(db, "update_user", saved.append)
     user = make_user()
     user.make_driver("1 School Ln", "Cash", 7)
@@ -102,3 +104,25 @@ def test_car_from_db(monkeypatch):
 def test_car_from_db_missing(monkeypatch):
     monkeypatch.setattr(db, "get_car_by_id", lambda id: None)
     assert Car.from_db(9) is None
+
+
+# A banned person can't save changes that make them a driver
+def test_make_driver_checks_bans(monkeypatch):
+    def refuse(identifiers, context=None):
+        raise bans.BannedError("banned")
+
+    saved = []
+    monkeypatch.setattr(bans, "ensure_allowed", refuse)
+    monkeypatch.setattr(db, "update_user", saved.append)
+    with pytest.raises(bans.BannedError):
+        make_user().make_driver("1 School Ln", "Cash", 7)
+    assert saved == []
+
+
+def test_new_user_checks_bans_before_saving(monkeypatch):
+    seen, inserted = [], []
+    monkeypatch.setattr(bans, "ensure_allowed", lambda identifiers, context=None: seen.append(identifiers))
+    monkeypatch.setattr(db, "insert_user", lambda user: inserted.append(user) or 42)
+    user = make_user(id=None, phone="215-555-0100")
+    assert user.id == 42
+    assert ("email", "jd@psu.edu") in seen[0] and ("phone", "215-555-0100") in seen[0]

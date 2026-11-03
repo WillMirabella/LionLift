@@ -1,5 +1,6 @@
 from models.car import Car
 from schedule_similarity import schedule_similarity
+import bans
 import db
 
 class User:
@@ -53,6 +54,8 @@ class User:
         self.preferred_payment = preferred_payment
         self.car_id = car_id
 
+        # A banned person can't become a driver by changing their details
+        bans.ensure_allowed(self._identifiers(), context="update")
         db.update_user(self)
 
     
@@ -78,6 +81,13 @@ class User:
         if(car_id!=None): new_user.make_driver(row[10], row[11], row[12], row[13])
         return new_user
 
-    # Adds a newly created user to the db and returns its id
+    # Identifiers the ban system checks for this user. preferred_payment is a
+    # payment method like "Cash", shared by many people, so it isn't one of them.
+    def _identifiers(self):
+        return [("email", self.email), ("phone", self.phone)]
+
+    # Adds a newly created user to the db and returns its id.
+    # Raises bans.BannedError if the person is banned.
     def to_db(self):
+        bans.ensure_allowed(self._identifiers(), context="signup")
         return db.insert_user(self)

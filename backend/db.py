@@ -48,6 +48,32 @@ def create_relations():
             preferred_payment VARCHAR(100),
             car_id INTEGER REFERENCES cars(id)
         );
+        CREATE TABLE IF NOT EXISTS bans (
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            reason TEXT NOT NULL,
+            created_by VARCHAR(100) NOT NULL,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            expires_at TIMESTAMPTZ,
+            revoked_at TIMESTAMPTZ,
+            revoked_by VARCHAR(100)
+        );
+        CREATE TABLE IF NOT EXISTS ban_identifiers (
+            ban_id INTEGER NOT NULL REFERENCES bans(id) ON DELETE CASCADE,
+            kind VARCHAR(16) NOT NULL,
+            value CHAR(64) NOT NULL,
+            hint VARCHAR(64),
+            PRIMARY KEY (ban_id, kind, value)
+        );
+        CREATE INDEX IF NOT EXISTS ban_identifiers_value ON ban_identifiers (value);
+        CREATE TABLE IF NOT EXISTS ban_events (
+            id SERIAL PRIMARY KEY,
+            ban_id INTEGER REFERENCES bans(id) ON DELETE CASCADE,
+            action VARCHAR(32) NOT NULL,
+            actor VARCHAR(100),
+            detail JSONB,
+            at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
         CREATE TABLE IF NOT EXISTS contacts (
             id SERIAL PRIMARY KEY,
             sender INTEGER REFERENCES users(id),
