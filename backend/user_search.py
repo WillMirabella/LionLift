@@ -104,6 +104,33 @@ def distance_miles(point_a, point_b):
     return 2 * EARTH_RADIUS_MILES * math.asin(math.sqrt(a))
 
 
+# Size of the grid cells locations are snapped to, in miles
+APPROXIMATE_CELL_MILES = 1.0
+
+
+# Snaps a (latitude, longitude) point to the center of its grid cell, so a
+# user's exact location is never shared. Cells are cell_miles tall, and as wide
+# in miles at the cell's center latitude, so the point moves at most about
+# 0.71 * cell_miles. Every point in a cell gives the same answer.
+def approximate_location(location, cell_miles=APPROXIMATE_CELL_MILES):
+    latitude, longitude = check_location(*location)
+    if not cell_miles > 0:
+        raise ValueError(f"cell_miles must be positive, got {cell_miles}")
+
+    # Height of a cell in degrees of latitude
+    lat_step = math.degrees(cell_miles / EARTH_RADIUS_MILES)
+    lat_center = (math.floor(latitude / lat_step) + 0.5) * lat_step
+    lat_center = min(90.0, max(-90.0, lat_center))
+
+    # Degrees of longitude get shorter toward the poles, so cells get wider in
+    # degrees. The floor on cos keeps cells finite near the poles.
+    lon_step = lat_step / max(math.cos(math.radians(lat_center)), 0.01)
+    lon_center = (math.floor(longitude / lon_step) + 0.5) * lon_step
+    lon_center = min(180.0, max(-180.0, lon_center))
+
+    return round(lat_center, 6), round(lon_center, 6)
+
+
 # Returns the distance in miles from origin to a user, or None if the user
 # has no location
 def user_distance(user, origin):

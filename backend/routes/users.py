@@ -1,13 +1,28 @@
 from flask import Blueprint, jsonify, request
 
 import db
-from user_search import row_to_user, parse_sort, search_users
+from user_search import approximate_location, parse_sort, row_to_user, search_users, user_location
 
 # Blueprint for browsing users, with filtering and sorting
 users_bp = Blueprint("users", __name__, url_prefix="/api/users")
 
-# Fields left out of the browse list so contact info isn't shown to everyone
-PRIVATE_FIELDS = ("phone", "email")
+# Fields left out of the browse list so contact info and home addresses
+# aren't shown to everyone
+PRIVATE_FIELDS = ("phone", "email", "address")
+
+
+# Copy of a user with their location snapped to about a mile. Distances are
+# measured from this point too, so many searches from different places can't
+# be combined to find where someone lives.
+def _with_approximate_location(user):
+    user = dict(user)
+    location = user_location(user)
+    if location is None:
+        user.pop("latitude", None)
+        user.pop("longitude", None)
+    else:
+        user["latitude"], user["longitude"] = approximate_location(location)
+    return user
 
 
 # Reads a query parameter that can be repeated or comma separated,
@@ -87,11 +102,17 @@ def browse_users():
         }
         order = parse_sort(request.args.get("sort"))
         origin = _get_origin()
-
-        users = [row_to_user(row) for row in db.get_all_users()]
-        results = search_users(users, filters, order, origin)
-
     # Bad input from the client gets a 400 with the reason
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+
+    # Outside the try, so a problem with the stored data is a server error (500),
+    # not blamed on the request
+    users = [_with_approximate_location(row_to_user(row)) for row in db.get_all_users()]
+
+    try:
+        results = search_users(users, filters, order, origin)
+    # Filters that don't fit together, e.g. max_distance without lat and lon
     except ValueError as error:
         return jsonify({"error": str(error)}), 400
 
