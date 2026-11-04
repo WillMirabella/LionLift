@@ -31,8 +31,6 @@ def test_hides_phone_and_email(client, users):
         assert "phone" not in user and "email" not in user
 
 
-# Known privacy bug: home addresses are returned to anyone
-@pytest.mark.xfail(reason="address is not in PRIVATE_FIELDS")
 def test_hides_address(client, users):
     for user in client.get(URL).get_json():
         assert "address" not in user
@@ -80,10 +78,11 @@ def test_no_trailing_slash_redirects(client, users):
     assert response.headers["Location"].endswith("/api/users/")
 
 
-# Known bug: server-side errors are reported as client errors
-@pytest.mark.xfail(reason="except ValueError also wraps the database read")
+# A problem with the stored data is the server's fault, not the request's
 def test_schema_change_is_500(client, monkeypatch, sample_rows):
     monkeypatch.setattr(db, "get_all_users", lambda: [row + ("extra",) for row in sample_rows])
+    # Testing mode re-raises errors; turn that off to see the real response
+    monkeypatch.setitem(client.application.config, "PROPAGATE_EXCEPTIONS", False)
     assert client.get(URL).status_code == 500
 
 

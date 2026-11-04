@@ -7,8 +7,8 @@ import pytest
 user_search = pytest.importorskip("user_search")
 
 from user_search import (  # noqa: E402
-    USER_COLUMNS, check_location, distance_miles, filter_users, parse_sort, row_to_user,
-    search_users, sort_users, user_location,
+    USER_COLUMNS, approximate_location, check_location, distance_miles, filter_users, parse_sort,
+    row_to_user, search_users, sort_users, user_location,
 )
 
 ABINGTON = (40.1157, -75.1135)
@@ -235,3 +235,53 @@ def test_search_returns_copies():
 def test_search_rejects_origin_in_filters():
     with pytest.raises(ValueError):
         search_users(USERS, {"origin": ABINGTON})
+
+
+# ---- approximate_location ----
+
+# Farthest a point can move: half the diagonal of a 1 mile square cell
+MAX_MOVE_MILES = math.sqrt(0.5 ** 2 + 0.5 ** 2)
+
+
+def test_approximate_moves_less_than_a_mile():
+    rng = random.Random(7)
+    for _ in range(5000):
+        point = (rng.uniform(-80, 80), rng.uniform(-179, 179))
+        assert distance_miles(point, approximate_location(point)) <= MAX_MOVE_MILES + 1e-6
+
+
+def test_approximate_is_stable():
+    rng = random.Random(8)
+    for _ in range(2000):
+        once = approximate_location((rng.uniform(-80, 80), rng.uniform(-179, 179)))
+        assert approximate_location(once) == once
+
+
+def test_nearby_points_share_a_cell():
+    center = approximate_location(ABINGTON)
+    # Points a few hundred feet from the cell center land in the same cell
+    for d_lat, d_lon in [(0.001, 0), (-0.001, 0), (0, 0.001), (0, -0.001)]:
+        assert approximate_location((center[0] + d_lat, center[1] + d_lon)) == center
+
+
+def test_far_points_differ():
+    assert approximate_location(ABINGTON) != approximate_location(PHILLY)
+
+
+def test_bigger_cells_move_points_further():
+    rng = random.Random(9)
+    for _ in range(500):
+        point = (rng.uniform(-60, 60), rng.uniform(-170, 170))
+        assert distance_miles(point, approximate_location(point, cell_miles=5)) <= 5 * MAX_MOVE_MILES + 1e-6
+
+
+@pytest.mark.parametrize("point, cell", [((91, 0), 1), ((0, 181), 1), (("x", 0), 1), ((40, -75), 0), ((40, -75), -1)])
+def test_approximate_rejects(point, cell):
+    with pytest.raises(ValueError):
+        approximate_location(point, cell_miles=cell)
+
+
+def test_near_poles_stay_valid():
+    for point in [(89.999, 10), (-89.999, -170), (0, 179.999), (0, -179.999)]:
+        lat, lon = approximate_location(point)
+        assert -90 <= lat <= 90 and -180 <= lon <= 180
