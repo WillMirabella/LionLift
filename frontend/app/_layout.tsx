@@ -9,6 +9,7 @@ export default function Root() {
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="verify-email" options={{ headerShown: false }} />
         <Stack.Screen name="verify-code" options={{ headerShown: false }} />
+        <Stack.Screen name="set-password" options={{ headerShown: false }} />
         <Stack.Screen name="already-exists" options={{ headerShown: false }} />
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
     </Stack>
