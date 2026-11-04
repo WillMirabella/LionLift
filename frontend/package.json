@@ -9,6 +9,7 @@
     "expo-linking": "~57.0.12",
     "expo-router": "~57.0.25",
     "expo-status-bar": "~57.0.1",
+    "pg": "^8.23.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
@@ -19,6 +20,7 @@
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
+    "@types/pg": "^8.23.1",
     "@types/react": "~19.2.2",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~57.0.2",
