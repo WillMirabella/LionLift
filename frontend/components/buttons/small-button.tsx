@@ -4,6 +4,7 @@ import { colors } from "../../constants/colors";
 type Props = {
   text: string;
   onPress: () => void;
+  disabled?: boolean;
 };
 
 export default function SmallButton({ text, onPress }: Props) {
