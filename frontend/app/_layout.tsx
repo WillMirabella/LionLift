@@ -8,6 +8,7 @@ export default function Root() {
     <Stack>
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
+        <Stack.Screen name="create-profile" options={{ headerShown: false }} />
     </Stack>
   );
 }
