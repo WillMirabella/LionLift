@@ -6,7 +6,7 @@ We will be using Expo for development of React Native.
 - Move into the frontend directory
   - cd frontend
 - Install dependencies
-  - npm install
+  - npm ci
 
 ### Running the app
 
@@ -18,15 +18,15 @@ We will be using Expo for development of React Native.
 
 `frontend/index.ts` starts Expo Router; it is the entry point configured in
 `package.json`. `app/index.tsx` is a different file: it redirects the root
-route `/` to `/find-drivers` and is hidden from the tab bar.
+route `/` to `/sign-in` and is hidden from the tab bar.
 
-`app/_layout.tsx` defines `NavBar`, with **Find Drivers**, **Map**, and **Profile**
-tabs. Each tab's title is also its screen header. Each route file contains its
-screen component directly:
+`app/(app)/_layout.tsx` defines `NavBar`, with **Find Drivers**, **Map**, and
+**Profile** tabs. Each tab's title is also its screen header. Each route file
+contains its screen component directly:
 
-- `app/find-drivers.tsx` defines `FindDriversScreen`.
-- `app/map.tsx` defines `MapScreen`.
-- `app/profile.tsx` defines `ProfileScreen`.
+- `app/(app)/find-drivers.tsx` defines `FindDriversScreen`.
+- `app/(app)/map.tsx` defines `MapScreen`.
+- `app/(app)/profile.tsx` defines `ProfileScreen`.
 
 The screens share `components/placeholder-screen.tsx` and
 `constants/screen-styles.ts`. Update those files to change all placeholder cards.
@@ -50,5 +50,5 @@ versions for consistent installs across teammates and supports `npm ci`.
   confirm the screen title and selected tab change together.
 - Check that only three tabs appear, the header matches the selected screen, and
   the tab bar reaches the bottom safe area without an extra blank strip.
-- Open `/`, `/find-drivers`, `/map`, and `/profile` in the browser to check routes.
+- Open `/`, `/sign-in`, `/find-drivers`, `/map`, and `/profile` in the browser to check routes.
 - For browser preview, run `npm run web`.
