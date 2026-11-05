@@ -1,4 +1,5 @@
 from models.car import Car
+from schedule_similarity import schedule_similarity
 import db
 
 class User:
@@ -64,6 +65,10 @@ class User:
             raise ValueError("start_time and end_time must be between 0 and 24 (inclusive)")
 
         self.schedule[day_index] = (start_time, end_time)
+
+    # Returns how compatible this user's schedule is with another user's, from 0 to 100
+    def schedule_similarity(self, other):
+        return schedule_similarity(self.schedule, other.schedule)
 
     # Creates a user object from a row of the db
     @classmethod

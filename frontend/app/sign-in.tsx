@@ -38,7 +38,9 @@ export default function SignInScreen() {
       'Authentication will be connected later.'
     );*/
   }
-
+  function handleSignUp(){
+    router.replace("/verify-email");
+  }
   return (
     // Why there are two SafeAreaViews: https://stackoverflow.com/a/52458846
     <Fragment>
@@ -89,12 +91,7 @@ export default function SignInScreen() {
 
             <BigButton
               text="Create account"
-              onPress={() =>
-                Alert.alert(
-                  "Create account",
-                  "Account creation will be added later.",
-                )
-              }
+              onPress={handleSignUp}
               borderOnly={true}
             />
           </View>
