@@ -21,8 +21,8 @@ export default function SignInScreen() {
   const [password, setPassword] = useState("");
 
   function handleSignIn() {
-    // Warning: I have temporatily added an automatic redirect to the Find Drivers tab for demonstration purposes. This will be removed when authentication is implemented.
-    router.replace("/(app)/find-drivers");
+    // Warning: I have temporatily added an automatic redirect to the Browse tab for demonstration purposes. This will be removed when authentication is implemented.
+    router.replace("/(app)/browse");
 
     // Uncomment the following code when authentication is implemented.
     /*if (!email.trim() || !password) {
