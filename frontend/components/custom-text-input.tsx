@@ -8,7 +8,7 @@ type Props = {
   placeholder: string;
   value: string;
   onChangeText: (value: string) => void;
-  keyboardType?: "default" | "email-address"; // If this ever has to be used with more keyboard types, we can add them here.
+  keyboardType?: "default" | "email-address" | "numeric" | "phone-pad" ; // If this ever has to be used with more keyboard types, we can add them here.
   onSubmitEditing?: () => void;
   isPassword?: boolean;
 };

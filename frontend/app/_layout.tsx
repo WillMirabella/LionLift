@@ -11,6 +11,7 @@ export default function Root() {
         <Stack.Screen name="verify-code" options={{ headerShown: false }} />
         <Stack.Screen name="already-exists" options={{ headerShown: false }} />
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
+        <Stack.Screen name="create-profile" options={{ headerShown: false }} />
     </Stack>
   );
 }
