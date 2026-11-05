@@ -13,6 +13,7 @@ import BigButton from "../components/buttons/big-button";
 import { KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import Stepper from "../components/stepper";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -24,12 +25,12 @@ export default function SetPasswordScreen() {
   const handleSetPassword = async () => {
     if(!passwordsMatch()) setErrorText("Passwords must match");
     else if(!meetsRequirements(password)) setErrorText("Password must meet requirements");
-    else setErrorText("");
-
-    router.replace({
-      pathname: '/(app)/find-drivers',
-      params: { password: password },
-    });
+    else{
+        router.replace({
+          pathname: '/(app)/find-drivers',
+          params: { password: password },
+        });
+      }
   }
 
   function passwordsMatch(){
@@ -59,81 +60,94 @@ export default function SetPasswordScreen() {
         <SafeAreaView style={{ flex: 0, backgroundColor: colors.secondary }} />
         <View style={{ flex: 1, backgroundColor: colors.secondary }}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}  style={{ flex: 1 }}>
-          <View style={styles.sheet}>
-            <Text style={styles.heading}>Set Password</Text>
-            <CustomTextInput
-              label="Password"
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              keyboardType="default"
-              isPassword={true}
-            />
+            <View style={styles.sheet}>
+              <Stepper
+                step={3}
+                steps={5}
+              />
+              <Text style={styles.heading}>Set Password</Text>
 
-            <View>
-              {password.length < 8 ? (
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                  <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
-                  <Text style={styles.errorText}>At least 8 characters</Text>
-                </View>
-              ) : (
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                  <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
-                  <Text style={styles.successText}>At least 8 characters</Text>
-                </View>
+              <CustomTextInput
+                label="Password"
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                keyboardType="default"
+                isPassword={true}
+              />
+              {meetsRequirements(password) ? (
+              <View>
+                  <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                      <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
+                      <Text style={styles.successText}>Meets all requirements</Text>
+                  </View>
+              </View>
+                ) : (
+              <View>
+                  {password.length < 8 ? (
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                      <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
+                      <Text style={styles.errorText}>Contains at least 8 characters</Text>
+                    </View>
+                  ) : (
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                      <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
+                      <Text style={styles.successText}>Contains at least 8 characters</Text>
+                    </View>
+                  )}
+                  {!hasUpperCaseAndLowerCase(password) ? (
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                      <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
+                      <Text style={styles.errorText}>Contains upper and lower case</Text>
+                    </View>
+                  ) : (
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                      <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
+                      <Text style={styles.successText}>Contains upper and lower case</Text>
+                    </View>
+                  )}
+                  {!hasLettersAndNumbers(password) ? (
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                      <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
+                      <Text style={styles.errorText}>Contains letters and numbers</Text>
+                    </View>
+                  ) : (
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                      <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
+                      <Text style={styles.successText}>Contains letters and numbers</Text>
+                    </View>
+                  )}
+                  {!hasSpecialCharacters(password) ? (
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                      <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
+                      <Text style={styles.errorText}>Contains a special character ($, !, @, #) </Text>
+                    </View>
+                  ) : (
+                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                      <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
+                      <Text style={styles.successText}>Contains a special character ($, !, @, #)</Text>
+                    </View>
+                  )}
+              </View>
+             )}
+              <CustomTextInput
+                label="Confirm Password"
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                keyboardType="default"
+                isPassword={true}
+              />
+              {errorText.length > 0 && (
+                <Text style={styles.errorText}>{errorText}</Text>
               )}
-              {!hasUpperCaseAndLowerCase(password) ? (
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                  <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
-                  <Text style={styles.errorText}>Mixture of upper and lower case</Text>
-                </View>
-              ) : (
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                  <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
-                  <Text style={styles.successText}>Mixture of upper and lower case</Text>
-                </View>
-              )}
-              {!hasLettersAndNumbers(password) ? (
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                  <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
-                  <Text style={styles.errorText}>Mixture of letters and numbers</Text>
-                </View>
-              ) : (
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                  <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
-                  <Text style={styles.successText}>Mixture of letters and numbers</Text>
-                </View>
-              )}
-              {!hasSpecialCharacters(password) ? (
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                  <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
-                  <Text style={styles.errorText}>At least one special character, e.g. ! @ # ? ]</Text>
-                </View>
-              ) : (
-                <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                  <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
-                  <Text style={styles.successText}>At least one special character, e.g. ! @ # ? ]</Text>
-                </View>
-              )}
+              <BigButton
+                text="Set Password"
+                onPress={() => handleSetPassword()}
+              />
             </View>
-            <CustomTextInput
-              label="Confirm Password"
-              placeholder="Confirm Password"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              keyboardType="default"
-              isPassword={true}
-            />
-            {errorText.length > 0 && (
-               <Text style={styles.errorText}>{errorText}</Text>
-            )}
-            <BigButton
-              text="Set Password"
-              onPress={() => handleSetPassword()}
-            />
-          </View>
-        </KeyboardAvoidingView>
-      </View>
+          </KeyboardAvoidingView>
+        </View>
     </Fragment>
   );
 }
