@@ -33,7 +33,7 @@ export default function NavBar() {
         ),
       }} />
       <Tabs.Screen name="profile" options={{
-        title: 'Profile',
+        headerShown: false,
         tabBarAccessibilityLabel: 'Profile',
         tabBarIcon: ({ color, size }) => (
           <Ionicons name="person-outline" color={color} size={size} />
