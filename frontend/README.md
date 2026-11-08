@@ -43,26 +43,23 @@ versions for consistent installs across teammates and supports `npm ci`.
 
 ### User view selector (issue #24)
 
-`components/user-view-selector.tsx` provides Compact and Expanded buttons.
-It receives the selected view through `expanded` and reports button presses
-through `onChange`. The selected button is highlighted and exposes its selected
-state to accessibility tools.
+Find Drivers displays a small, right-aligned group of two icons above the user
+cards: a list for Compact and a detailed card for Expanded. The selected icon
+has a light blue background. Each control has a 44-pixel touch target and an
+accessibility label ("Compact cards" or "Expanded cards").
+Compact is selected initially. The screen holds one `expanded` state and passes
+it to `components/user-view-selector.tsx` and every `UserCard`, so all cards
+switch layouts together. The selector reports presses through `onChange` and
+exposes the selected button to accessibility tools.
 
-The selector is not connected to Find Drivers yet. The user-card implementation
-is still in draft PR #40. Once that component is available, the screen can hold
-one `expanded` state and share it with the selector and every card:
+Expanded shows the card's existing map placeholder; Compact hides it. The cards
+still display sample information, and the map is not interactive.
 
-```tsx
-const [expanded, setExpanded] = useState(false);
-
-// Inside the screen's JSX:
-<UserViewSelector expanded={expanded} onChange={setExpanded} />
-<UserCard expanded={expanded} />
-```
-
-Import `useState` from React and the two components when integrating this example.
-Pass the same `expanded` value to each card in the list. This switches layouts
-without changing the list's users or their order.
+To check this feature, open Find Drivers and confirm both cards start compact.
+Select Expanded and check that both map placeholders appear and Expanded is
+highlighted. Select Compact and check that both placeholders disappear and
+Compact is highlighted. Repeat the selection and verify card information stays
+the same.
 
 ### Verify changes
 

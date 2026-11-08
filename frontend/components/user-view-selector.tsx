@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { colors } from '../constants/colors';
 
 type Props = {
@@ -12,37 +13,43 @@ export default function UserViewSelector({ expanded, onChange }: Props) {
     <View style={styles.buttons}>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Compact cards"
         accessibilityState={{ selected: !expanded }}
         onPress={() => onChange(false)}
         style={[styles.button, !expanded && styles.selectedButton]}
       >
-        <Text style={[styles.label, !expanded && styles.selectedLabel]}>Compact</Text>
+        <Ionicons name="list-outline" size={22} color={colors.primary} />
       </Pressable>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel="Expanded cards"
         accessibilityState={{ selected: expanded }}
         onPress={() => onChange(true)}
         style={[styles.button, expanded && styles.selectedButton]}
       >
-        <Text style={[styles.label, expanded && styles.selectedLabel]}>Expanded</Text>
+        <Ionicons name="reader-outline" size={22} color={colors.primary} />
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  buttons: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  button: {
-    flex: 1,
-    minHeight: 44,
-    padding: 12,
+  buttons: {
+    flexDirection: 'row',
+    alignSelf: 'flex-end',
+    gap: 2,
+    padding: 3,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: colors.border,
     borderRadius: 8,
+  },
+  button: {
+    width: 44,
+    height: 44,
+    borderRadius: 5,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  selectedButton: { backgroundColor: colors.primary },
-  label: { color: colors.primary, fontWeight: '600' },
-  selectedLabel: { color: colors.background },
+  selectedButton: { backgroundColor: `${colors.accent}33` },
 });
