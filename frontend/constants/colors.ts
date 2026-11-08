@@ -8,4 +8,6 @@ export const colors = {
 
     background: '#FFFFFF',
     border: '#D0D0D0',
+
+    error: '#fb5454',
 };

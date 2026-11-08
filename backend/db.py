@@ -55,6 +55,14 @@ def create_relations():
             method VARCHAR(100),
             datetime VARCHAR(100)
         );
+        CREATE TABLE IF NOT EXISTS email_verifications (
+            email VARCHAR(254) PRIMARY KEY,
+            code_hash CHAR(64),
+            expires_at TIMESTAMPTZ,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            last_sent_at TIMESTAMPTZ,
+            verified BOOLEAN NOT NULL DEFAULT FALSE
+        );
     """
     conn = get_connection()
     curr = conn.cursor()
@@ -200,3 +208,64 @@ def get_contact_by_id(id):
     conn.close()
 
     return row
+# Saves a new verification code for an email, replacing any older code
+# The actual code is never stored, only its hash
+def save_verification_code(email, code_hash, expires_at):
+    query = """
+        INSERT INTO email_verifications (email, code_hash, expires_at, attempts, last_sent_at)
+        VALUES (%s, %s, %s, 0, NOW())
+        ON CONFLICT (email) DO UPDATE
+        SET code_hash = EXCLUDED.code_hash, expires_at = EXCLUDED.expires_at, attempts = 0, last_sent_at = NOW();
+    """
+    conn = get_connection()
+    curr = conn.cursor()
+    curr.execute(query,(email, code_hash, expires_at))
+    conn.commit()
+    conn.close()
+
+# Returns (code_hash, expires_at, attempts, last_sent_at, verified) for an email, or None
+def get_verification(email):
+    query = """
+            SELECT code_hash, expires_at, attempts, last_sent_at, verified
+            FROM email_verifications
+            WHERE email = %s;
+        """
+    conn = get_connection()
+    curr = conn.cursor()
+    curr.execute(query,(email,))
+    row = curr.fetchone()
+    conn.close()
+
+    return row
+
+# Counts a wrong guess against an email's current code
+def increment_verification_attempts(email):
+    query = """
+        UPDATE email_verifications
+        SET attempts = attempts + 1
+        WHERE email = %s;
+    """
+    conn = get_connection()
+    curr = conn.cursor()
+    curr.execute(query,(email,))
+    conn.commit()
+    conn.close()
+
+# Marks an email as verified and clears its code so it can't be reused
+def mark_email_verified(email):
+    query = """
+        UPDATE email_verifications
+        SET verified = TRUE, code_hash = NULL, expires_at = NULL
+        WHERE email = %s;
+    """
+    conn = get_connection()
+    curr = conn.cursor()
+    curr.execute(query,(email,))
+    conn.commit()
+    conn.close()
+
+# Returns True if the email has been verified
+# Use this to block unverified users from other endpoints
+def is_email_verified(email):
+    row = get_verification(email)
+    return row is not None and row[4]
