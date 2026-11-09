@@ -14,11 +14,14 @@ import { KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Stepper from "../components/stepper";
+import { useLocalSearchParams } from 'expo-router';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function SetPasswordScreen() {
+  const { email } = useLocalSearchParams<{ email: string }>();
   const [password, setPassword] = useState("");
+  const [,setEmail] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorText, setErrorText] = useState("");
 
@@ -26,11 +29,22 @@ export default function SetPasswordScreen() {
     if(!passwordsMatch()) setErrorText("Passwords must match");
     else if(!meetsRequirements(password)) setErrorText("Password must meet requirements");
     else{
+      const response = await fetch(`${API_URL}/api/auth/set-password`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json',},
+        body: JSON.stringify({ email: email, password: password }),
+      });
+      const result = await response.json();
+      if (result['error']!=null){
+        console.log(result['error']);
+        setErrorText(result['error']);
+      }
+      else{
         router.replace({
-          pathname: '/(app)/find-drivers',
-          params: { password: password },
+          pathname: '/(app)/find-drivers'
         });
       }
+    }
   }
 
   function passwordsMatch(){
@@ -75,6 +89,7 @@ export default function SetPasswordScreen() {
                 keyboardType="default"
                 isPassword={true}
               />
+              
               {meetsRequirements(password) ? (
               <View>
                   <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
@@ -83,52 +98,52 @@ export default function SetPasswordScreen() {
                   </View>
               </View>
                 ) : (
-              <View>
-                  {password.length < 8 ? (
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                      <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
-                      <Text style={styles.errorText}>Contains at least 8 characters</Text>
-                    </View>
-                  ) : (
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                      <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
-                      <Text style={styles.successText}>Contains at least 8 characters</Text>
-                    </View>
-                  )}
-                  {!hasUpperCaseAndLowerCase(password) ? (
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                      <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
-                      <Text style={styles.errorText}>Contains upper and lower case</Text>
-                    </View>
-                  ) : (
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                      <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
-                      <Text style={styles.successText}>Contains upper and lower case</Text>
-                    </View>
-                  )}
-                  {!hasLettersAndNumbers(password) ? (
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                      <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
-                      <Text style={styles.errorText}>Contains letters and numbers</Text>
-                    </View>
-                  ) : (
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                      <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
-                      <Text style={styles.successText}>Contains letters and numbers</Text>
-                    </View>
-                  )}
-                  {!hasSpecialCharacters(password) ? (
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                      <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
-                      <Text style={styles.errorText}>Contains a special character ($, !, @, #) </Text>
-                    </View>
-                  ) : (
-                    <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
-                      <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
-                      <Text style={styles.successText}>Contains a special character ($, !, @, #)</Text>
-                    </View>
-                  )}
-              </View>
+                <View>
+                    {password.length < 8 ? (
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                        <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
+                        <Text style={styles.errorText}>Contains at least 8 characters</Text>
+                      </View>
+                    ) : (
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                        <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
+                        <Text style={styles.successText}>Contains at least 8 characters</Text>
+                      </View>
+                    )}
+                    {!hasUpperCaseAndLowerCase(password) ? (
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                        <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
+                        <Text style={styles.errorText}>Contains upper and lower case</Text>
+                      </View>
+                    ) : (
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                        <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
+                        <Text style={styles.successText}>Contains upper and lower case</Text>
+                      </View>
+                    )}
+                    {!hasLettersAndNumbers(password) ? (
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                        <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
+                        <Text style={styles.errorText}>Contains letters and numbers</Text>
+                      </View>
+                    ) : (
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                        <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
+                        <Text style={styles.successText}>Contains letters and numbers</Text>
+                      </View>
+                    )}
+                    {!hasSpecialCharacters(password) ? (
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                        <Ionicons name={"close-outline"} size={24} color={colors.error} /> 
+                        <Text style={styles.errorText}>Contains a special character ($, !, @, #) </Text>
+                      </View>
+                    ) : (
+                      <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
+                        <Ionicons name={"checkmark-outline"} size={24} color={colors.success} /> 
+                        <Text style={styles.successText}>Contains a special character ($, !, @, #)</Text>
+                      </View>
+                    )}
+                </View>
              )}
               <CustomTextInput
                 label="Confirm Password"

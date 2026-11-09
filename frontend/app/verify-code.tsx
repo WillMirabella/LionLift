@@ -60,7 +60,13 @@ export default function VerifyCodeScreen() {
         console.log(result['error']);
         setErrorText(result['error']);
       }
-      else router.replace("/set-password");
+      else 
+        {
+          router.replace({
+            pathname: '/set-password',
+            params: { email: email },
+          });
+        }
     } catch (error) {
       console.error('Error submitting data:', error);
     }
