@@ -7,29 +7,57 @@ import LabeledText from "../../components/labeled-text";
 import {
   SafeAreaView,
 } from 'react-native-safe-area-context';
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { Carousel } from "react-native-reanimated-carousel";
 
 export default function ProfileScreen() {
+
+  const data = [
+    <View style={styles.card}>
+      <Text style={styles.heading}>About</Text>
+      <Text style={styles.subheading}>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
+        eiusmod tempor incididunt ut labore et dolore magna aliqua.
+      </Text>
+      <Divider />
+      <LabeledText label="Age" value="20" />
+      <LabeledText label="Gender" value="Male" />
+      <LabeledText label="Major" value="Computer Science" />
+      <LabeledText label="Graduation Year" value="2028" />
+      <LabeledText label="Preferred Payment" value="Venmo" />
+    </View>,
+
+    <View style={styles.card}>
+      <Text style={styles.heading}>Schedule</Text>
+      <View style={styles.map}>
+      </View>
+    </View>,
+
+    <View style={styles.card}>
+      <Text style={styles.heading}>Map</Text>
+      <View style={styles.map}>
+      </View>
+    </View>
+  ];
+
   return (
-    <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
-      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
-        <View style={styles.profilePicture} />
-        <Text style={styles.heading}>Placeholder Name</Text>
-      </View>
-      <View style={styles.card}>
-        <Text style={styles.heading}>About</Text>
-        <Text style={styles.subheading}>
-          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-          eiusmod tempor incididunt ut labore et dolore magna aliqua.
-        </Text>
-        <Divider />
-        <LabeledText label="Age" value="20" />
-        <LabeledText label="Gender" value="Male" />
-        <LabeledText label="Major" value="Computer Science" />
-        <LabeledText label="Graduation Year" value="2028" />
-        <LabeledText label="Preferred Payment" value="Venmo" />
-      </View>
-      <BigButton text="Contact" onPress={() => {}} />
-    </SafeAreaView>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
+        <View style={{ flexDirection: "row", alignItems: "center", margin: 24 }}>
+          <View style={styles.profilePicture} />
+          <Text style={styles.heading}>Placeholder Name</Text>
+        </View>
+        <Carousel
+          data={data}
+          style={{ flex: 1 }}
+          renderItem={({ item }) => (
+              <View style={{ flex: 1 }}>
+                {item}
+              </View>
+          )}
+        />
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
 
@@ -37,7 +65,6 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: 16,
   },
   profilePicture: {
     width: 100,
@@ -61,10 +88,18 @@ const styles = StyleSheet.create({
     borderWidth: 0,
     borderColor: colors.secondary,
     padding: 16,
+    margin: 24,
     borderRadius: 24,
     marginVertical: 16,
+    marginBottom: 56 + 16,
     flex: 1,
     justifyContent: "space-between",
     ...shadowStyles,
+  },
+  map: {
+    borderRadius: 8,
+    flex: 1,
+    marginTop: 16,
+    backgroundColor: colors.border,
   },
 });
