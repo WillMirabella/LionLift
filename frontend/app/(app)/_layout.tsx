@@ -15,7 +15,7 @@ export default function NavBar() {
         tabBarActiveTintColor: colors.secondary,
         tabBarInactiveTintColor: colors.secondary,
         tabBarLabelPosition: "below-icon",
-        tabBarStyle: { height: 64 + insets.bottom, backgroundColor: "#FFFFFF" },
+        tabBarStyle: { height: 56 + insets.bottom, backgroundColor: "#FFFFFF" },
         tabBarIconStyle: {
           flex: 1,
           alignItems: 'center',
@@ -23,7 +23,7 @@ export default function NavBar() {
           margin: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 10,
           fontWeight: 'bold',
         },
       }}
@@ -35,7 +35,7 @@ export default function NavBar() {
           title: "Browse",
           tabBarAccessibilityLabel: "Browse",
           tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons name={focused ? "people" : "people-outline"} color={String(color)} size={32} />
+            <Ionicons name={focused ? "people" : "people-outline"} color={String(color)} size={size} />
           ),
         }}
       />
@@ -45,7 +45,7 @@ export default function NavBar() {
           title: "Map",
           tabBarAccessibilityLabel: "Map",
           tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons name={focused ? "map" : "map-outline"} color={String(color)} size={32} />
+            <Ionicons name={focused ? "map" : "map-outline"} color={String(color)} size={size} />
           ),
         }}
       />
@@ -56,7 +56,7 @@ export default function NavBar() {
           headerShown: false,
           tabBarAccessibilityLabel: "Profile",
           tabBarIcon: ({ focused, color, size }) => (
-            <Ionicons name={focused ? "person" : "person-outline"} color={String(color)} size={32} />
+            <Ionicons name={focused ? "person" : "person-outline"} color={String(color)} size={size} />
           ),
         }}
       />
