@@ -41,12 +41,18 @@ def request_code():
             return jsonify({"error": "Please wait a minute before requesting another code"}), 429
 
     code, code_hash = make_code()
+    # send before saving, so if the email fails the old code and cooldown are left alone
+    try:
+        send_email(
+            email,
+            "Your LionLift verification code",
+            f"Your verification code is {code}. It expires in {CODE_EXPIRY_MINUTES} minutes.",
+        )
+    except Exception as e:
+        print(f"Failed to send verification email to {email}: {e}")
+        return jsonify({"error": "Couldn't send the verification email, please try again"}), 502
+
     db.save_verification_code(email, code_hash, now + timedelta(minutes=CODE_EXPIRY_MINUTES))
-    send_email(
-        email,
-        "Your LionLift verification code",
-        f"Your verification code is {code}. It expires in {CODE_EXPIRY_MINUTES} minutes.",
-    )
     return jsonify({"status": "code_sent"}), 200
 
 
