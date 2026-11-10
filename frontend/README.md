@@ -43,23 +43,28 @@ versions for consistent installs across teammates and supports `npm ci`.
 
 ### User view selector (issue #24)
 
-Find Drivers displays a small, right-aligned group of two icons above the user
-cards: a list for Compact and a detailed card for Expanded. The selected icon
-has a light blue background. Each control has a 44-pixel touch target and an
-accessibility label ("Compact cards" or "Expanded cards").
+Find Drivers has one Display options icon on the right of its screen header.
+It opens a menu with a View section containing Compact and Expanded choices.
+The selected choice has a checkmark and light blue background. Selecting a view
+closes the menu and updates every card together. The menu can also be dismissed
+with its close button, by tapping outside it, or with Android Back / web Escape.
+Sorting and filtering can be added as sections of the same menu in future work;
+no nonfunctional sorting or filtering controls are displayed.
+
 Compact is selected initially. The screen holds one `expanded` state and passes
-it to `components/user-view-selector.tsx` and every `UserCard`, so all cards
-switch layouts together. The selector reports presses through `onChange` and
-exposes the selected button to accessibility tools.
+it to `components/user-view-selector.tsx` and every `UserCard`. The selector
+handles its own menu visibility and reports selections through `onChange`.
+Controls have accessibility labels and at least 44-pixel touch targets.
 
 Expanded shows the card's existing map placeholder; Compact hides it. The cards
 still display sample information, and the map is not interactive.
 
 To check this feature, open Find Drivers and confirm both cards start compact.
-Select Expanded and check that both map placeholders appear and Expanded is
-highlighted. Select Compact and check that both placeholders disappear and
-Compact is highlighted. Repeat the selection and verify card information stays
-the same.
+Open Display options from the header and select Expanded. Confirm the menu
+closes and both map placeholders appear. Reopen the menu and confirm Expanded
+is selected, then select Compact and confirm both placeholders disappear.
+Check that dismissing the menu without selecting a view preserves the layout.
+Switch to another tab and back, and confirm the control belongs only to Find Drivers.
 
 ### Verify changes
 
