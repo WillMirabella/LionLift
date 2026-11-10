@@ -1,6 +1,6 @@
 import re
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 
 import pytest
 
@@ -84,6 +84,18 @@ def test_duplicate_email_rejected():
     new_user("same@psu.edu")
     with pytest.raises(Exception):
         new_user("same@psu.edu")
+
+
+# Every way the app can write a time reads back as the same hours
+@pytest.mark.parametrize("schedule", [
+    [("9:30 AM", "5:00 PM"), None, ("09:30", "17:00"), None, None],
+    [(time(9, 30), time(17, 0)), None, (time(9, 30), time(17, 0)), None, None],
+    [(9.5, 17), None, (9.5, 17.0), None, None],
+])
+def test_schedule_formats_round_trip(schedule):
+    user = new_user(schedule=schedule)
+    stored = db.get_user_by_id(user.id)[9]
+    assert parse_schedule(stored) == [(9.5, 17.0), None, (9.5, 17.0), None, None]
 
 
 # ---- cars and contacts ----
