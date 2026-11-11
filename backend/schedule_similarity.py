@@ -37,8 +37,8 @@ DEFAULT_CUTOFF_HOURS = 2.0
 # e.g. 9.1 - 8.85 coming out as 0.2500000001 instead of 0.25
 EPSILON = 1e-9
 
-# Matches times like "9", "09:30", "9:30pm", "9:30 a.m."
-TIME_PATTERN = re.compile(r"^(\d{1,2})(?::(\d{2}))?\s*([ap])?\.?\s*(m\.?)?$", re.IGNORECASE)
+# Matches times like "9", "09:30", "09:30:00", "9:30pm", "9:30 a.m."
+TIME_PATTERN = re.compile(r"^(\d{1,2})(?::(\d{2})(?::(\d{2}))?)?\s*([ap])?\.?\s*(m\.?)?$", re.IGNORECASE)
 
 
 # Converts a single time value into hours as a float.
@@ -86,13 +86,15 @@ def _parse_time_string(text):
 
     hour = int(match.group(1))
     minute = int(match.group(2) or 0)
-    meridiem = match.group(3)
+    # Seconds show up when Postgres writes back a time value, e.g. "09:30:00"
+    second = int(match.group(3) or 0)
+    meridiem = match.group(4)
 
     # A lone "m" with no a or p, like "9:30 m", is not a valid time
-    if match.group(4) and not meridiem:
+    if match.group(5) and not meridiem:
         raise ValueError(f"invalid time: {text!r}")
 
-    if minute > 59:
+    if minute > 59 or second > 59:
         raise ValueError(f"invalid time: {text!r}")
 
     if meridiem:
@@ -104,10 +106,10 @@ def _parse_time_string(text):
             hour += 12
     else:
         # 24-hour clock: 24:00 is allowed as end of day, nothing past it
-        if hour > 24 or (hour == 24 and minute > 0):
+        if hour > 24 or (hour == 24 and (minute > 0 or second > 0)):
             raise ValueError(f"invalid time: {text!r}")
 
-    return hour + minute / 60
+    return hour + minute / 60 + second / 3600
 
 
 # Returns True if value looks like a single time rather than a pair or list
@@ -173,17 +175,73 @@ def parse_day(day, day_index=0):
     return arrival, departure
 
 
-# Turns a day stored as text, like "(9,17)" or "{9,17}", into a pair of strings
+# Removes the quotes Postgres puts around an array element, and the
+# backslashes it adds before quotes and backslashes inside it
+def _unquote(text):
+    text = text.strip()
+    if len(text) < 2 or text[0] != '"' or text[-1] != '"':
+        return text
+    return re.sub(r"\\(.)", r"\1", text[1:-1])
+
+
+# Splits text on commas that aren't inside double quotes. Quoted fields lose
+# their quotes, and "" inside a quoted field stands for one quote.
+# Returns (field, was_quoted) pairs.
+def _split_fields(text):
+    fields = []
+    current = ""
+    quoted = False
+    in_quotes = False
+    i = 0
+    while i < len(text):
+        char = text[i]
+        if in_quotes:
+            if char == '"' and text[i + 1:i + 2] == '"':
+                current += '"'
+                i += 1
+            elif char == '"':
+                in_quotes = False
+            elif char == "\\" and i + 1 < len(text):
+                current += text[i + 1]
+                i += 1
+            else:
+                current += char
+        elif char == '"':
+            in_quotes = True
+            quoted = True
+        elif char == ",":
+            fields.append((current, quoted))
+            current, quoted = "", False
+        else:
+            current += char
+        i += 1
+
+    if in_quotes:
+        raise ValueError(f"unclosed quote in {text!r}")
+    fields.append((current, quoted))
+    return fields
+
+
+# Turns a day stored as text, like "(9,17)", "{9,17}" or
+# "(\"9:30 AM\",\"5:00 PM\")", into a pair of strings
 def _split_record(text, day_index):
-    text = text.strip().strip('"').strip()
+    text = _unquote(text)
 
     if len(text) < 2 or (text[0], text[-1]) not in (("(", ")"), ("{", "}")):
         raise ValueError(f"day {day_index}: could not read {text!r}")
 
-    parts = [part.strip() for part in text[1:-1].split(",")]
+    try:
+        fields = _split_fields(text[1:-1])
+    except ValueError:
+        raise ValueError(f"day {day_index}: could not read {text!r}")
 
-    # Postgres writes a missing value in a record as an empty field, e.g. "(9,)"
-    return [None if part in ("", "NULL") else part for part in parts]
+    # Postgres writes a missing value in a record as an empty field, e.g. "(9,)".
+    # A quoted field is always a value, even "" or "NULL".
+    parts = []
+    for field, quoted in fields:
+        field = field if quoted else field.strip()
+        parts.append(field if quoted else (None if field in ("", "NULL") else field))
+    return parts
 
 
 # Reads a schedule saved by db.insert_user. Postgres stores the Python list as
@@ -200,9 +258,15 @@ def _split_db_array(text):
     depth = 0
     in_quotes = False
 
-    # Split on commas that are not inside quotes or nested braces
+    # Split on commas that are not inside quotes or nested braces.
+    # Inside quotes, a backslash means the next character is just text.
+    escaped = False
     for char in inner:
-        if char == '"':
+        if escaped:
+            escaped = False
+        elif in_quotes and char == "\\":
+            escaped = True
+        elif char == '"':
             in_quotes = not in_quotes
         elif not in_quotes and char == "{":
             depth += 1
@@ -215,7 +279,7 @@ def _split_db_array(text):
         else:
             current += char
 
-    if in_quotes or depth != 0:
+    if in_quotes or escaped or depth != 0:
         raise ValueError(f"could not read schedule: {text!r}")
 
     if current.strip():

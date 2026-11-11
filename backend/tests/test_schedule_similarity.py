@@ -112,15 +112,37 @@ def test_parse_schedule_invalid(schedule):
         parse_schedule(schedule)
 
 
-# Known bugs: text times saved through psycopg2 don't read back
-@pytest.mark.xfail(reason="escaped quotes from text times aren't handled by the database text parser")
+# Text times saved through psycopg2 come back quoted and escaped
 def test_parse_schedule_database_text_with_string_times():
     assert parse_schedule('{"(\\"9:30 AM\\",\\"5:00 PM\\")",NULL}') == [(9.5, 17.0)] + [None] * 4
 
 
-@pytest.mark.xfail(reason="HH:MM:SS from datetime.time values isn't accepted")
+# datetime.time values come back as HH:MM:SS
 def test_parse_schedule_database_text_with_time_objects():
     assert parse_schedule('{"(09:30:00,17:00:00)",NULL}') == [(9.5, 17.0)] + [None] * 4
+
+
+@pytest.mark.parametrize("value, expected", [
+    ("09:30:00", 9.5), ("17:00:00", 17.0), ("9:00:36", 9.01), ("12:30:00 PM", 12.5), ("24:00:00", 24.0),
+])
+def test_to_hours_with_seconds(value, expected):
+    assert to_hours(value) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("value", ["9:30:60", "9:30:5", "24:00:01", "9::00"])
+def test_to_hours_rejects_bad_seconds(value):
+    with pytest.raises(ValueError):
+        to_hours(value)
+
+
+@pytest.mark.parametrize("text", [
+    '{"(\\"9:30 AM\\",\\"5:00 PM\\")"',     # missing closing brace
+    '{"(\\"9:30 AM\\",\\"5:00 PM)",NULL}',     # unclosed quote inside the record
+    '{"(9,17)\\"}',                               # escaped closing quote
+])
+def test_parse_schedule_rejects_broken_quotes(text):
+    with pytest.raises(ValueError):
+        parse_schedule(text)
 
 
 # ---- time_closeness ----
