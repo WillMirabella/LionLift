@@ -12,6 +12,11 @@ export default function Root() {
         <Stack.Screen name="already-exists" options={{ headerShown: false }} />
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
         <Stack.Screen name="create-profile" options={{ headerShown: false }} />
+        <Stack.Screen name="create-address" options={{ headerShown: false }} />
+        <Stack.Screen name="create-schedule" options={{ headerShown: false }} />
+        <Stack.Screen name="create-car" options={{ headerShown: false }} />
+
+
     </Stack>
   );
 }

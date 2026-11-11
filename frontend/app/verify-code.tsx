@@ -59,7 +59,7 @@ export default function VerifyCodeScreen() {
         console.log(result['error']);
         setErrorText(result['error']);
       }
-      else router.replace("/(app)/find-drivers");
+      else router.replace("/create-profile");
     } catch (error) {
       console.error('Error submitting data:', error);
     }
