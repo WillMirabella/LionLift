@@ -1,11 +1,6 @@
-import { View } from 'react-native';
-import CampusMap from '../../components/campus-map';
+import DriverMap from '../../components/driver-map';
 
-// Map tab: shows the area around campus
+// Map tab: drivers near the rider and their routes to campus
 export default function MapScreen() {
-  return (
-    <View style={{ flex: 1 }}>
-      <CampusMap />
-    </View>
-  );
+  return <DriverMap />;
 }
