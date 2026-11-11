@@ -3,7 +3,7 @@ import PlaceholderScreen from "../../components/placeholder-screen";
 import UserCard from "../../components/user-card";
 import { screenStyles as styles } from '../../constants/screen-styles';
 
-export default function FindDriversScreen() {
+export default function BrowseScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <UserCard/>
