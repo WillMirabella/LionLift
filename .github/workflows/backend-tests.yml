@@ -1,0 +1,76 @@
+# Runs the backend tests on pull requests and on main.
+# Only starts when backend files (or this workflow) change, so frontend-only
+# work never triggers it. It reports results but isn't a required check yet.
+name: Backend tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-tests.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-tests.yml"
+
+# Read-only access to the repo is all the tests need
+permissions:
+  contents: read
+
+# A newer push to the same branch cancels the older, still-running test run
+concurrency:
+  group: backend-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+
+    # PostgreSQL for the tests marked db, with the same login as db.py.
+    # Tests use their own lionlift_test database inside it.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      # Fail instead of skipping if the database tests can't connect
+      REQUIRE_DB: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+
+      # psycopg2 is built from source and needs the PostgreSQL headers
+      - name: Install system packages
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev
+
+      - name: Install Python packages
+        run: pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: python -m pytest
