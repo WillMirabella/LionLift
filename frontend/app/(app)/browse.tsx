@@ -5,7 +5,7 @@ import UserViewSelector from "../../components/user-view-selector";
 import UserCard from "../../components/user-card";
 import { screenStyles as styles } from '../../constants/screen-styles';
 
-export default function FindDriversScreen() {
+export default function BrowseScreen() {
   const [expanded, setExpanded] = useState(false);
   return (
     <>
