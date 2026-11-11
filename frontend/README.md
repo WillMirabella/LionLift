@@ -41,6 +41,31 @@ The unused `App.tsx` starter has been removed.
 Keep `package-lock.json` committed alongside dependency changes. It records exact
 versions for consistent installs across teammates and supports `npm ci`.
 
+### User view selector (issue #24)
+
+Find Drivers has one Display options icon on the right of its screen header.
+It opens a menu with a View section containing Compact and Expanded choices.
+The selected choice has a checkmark and light blue background. Selecting a view
+closes the menu and updates every card together. The menu can also be dismissed
+by tapping outside it or with Android Back / web Escape.
+Sorting and filtering can be added as sections of the same menu in future work;
+no nonfunctional sorting or filtering controls are displayed.
+
+Compact is selected initially. The screen holds one `expanded` state and passes
+it to `components/user-view-selector.tsx` and every `UserCard`. The selector
+handles its own menu visibility and reports selections through `onChange`.
+Controls have accessibility labels and at least 44-pixel touch targets.
+
+Expanded shows the card's existing map placeholder; Compact hides it. The cards
+still display sample information, and the map is not interactive.
+
+To check this feature, open Find Drivers and confirm both cards start compact.
+Open Display options from the header and select Expanded. Confirm the menu
+closes and both map placeholders appear. Reopen the menu and confirm Expanded
+is selected, then select Compact and confirm both placeholders disappear.
+Check that dismissing the menu without selecting a view preserves the layout.
+Switch to another tab and back, and confirm the control belongs only to Find Drivers.
+
 ### Verify changes
 
 - Install dependencies with `npm ci` (Node.js 22.13 or newer).
