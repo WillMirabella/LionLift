@@ -1,4 +1,7 @@
+import os
 import psycopg2
+from psycopg2.extras import Json
+
 
 # This method establishes a connection with a postgres server
 # It is currently configured to connect to a server on your local machine
@@ -10,51 +13,57 @@ import psycopg2
 # Eventually, we can reconfigure this for a remote server
 def get_connection():
     try:
-        return psycopg2.connect(
-            database="postgres",
-            user="postgres",
-            password="password",
-            host="127.0.0.1",
-            port=5432,
+        conn = psycopg2.connect(
+            database=os.getenv("PGDATABASE", "lionlift_dev"),
+            user=os.getenv("PGUSER", "postgres"),
+            password=os.getenv("PGPASSWORD"),
+            host=os.getenv("PGHOST", "127.0.0.1"),
+            port=os.getenv("PGPORT", "5432"),
         )
         print("Connection to PostgreSQL established successfully.")
-    except:
-        print("Connection to PostgreSQL failed.")
+        return conn
+
+    except psycopg2.OperationalError as error:
+        print(f"Connection to PostgreSQL failed: {error}")
         return False
 
 # Creates relations, if they don't already exist
+
 def create_relations():
     query = """
         CREATE TABLE IF NOT EXISTS cars (
             id SERIAL PRIMARY KEY,
             make VARCHAR(100),
             model VARCHAR(100),
-            color VARCHAR(100),
+            color VARCHAR(50),
             year INTEGER,
-            capacity INTEGER
+            capacity SMALLINT
         );
+
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             first_name VARCHAR(100),
             last_name VARCHAR(100),
-            phone VARCHAR(100),
-            email VARCHAR(100),
-            gender VARCHAR(100),
-            description VARCHAR(100),
+            phone VARCHAR(20),
+            email VARCHAR(254),
+            gender VARCHAR(50),
+            description TEXT,
             grad_year INTEGER,
             major VARCHAR(100),
-            schedule VARCHAR(100),
-            address VARCHAR(100),
-            preferred_payment VARCHAR(100),
+            schedule JSONB,
+            address TEXT,
+            preferred_payment VARCHAR(50),
             car_id INTEGER REFERENCES cars(id)
         );
+
         CREATE TABLE IF NOT EXISTS contacts (
             id SERIAL PRIMARY KEY,
             sender INTEGER REFERENCES users(id),
             receiver INTEGER REFERENCES users(id),
-            method VARCHAR(100),
-            datetime VARCHAR(100)
+            method VARCHAR(50),
+            datetime TIMESTAMPTZ
         );
+
         CREATE TABLE IF NOT EXISTS email_verifications (
             email VARCHAR(254) PRIMARY KEY,
             code_hash CHAR(64),
@@ -64,13 +73,15 @@ def create_relations():
             verified BOOLEAN NOT NULL DEFAULT FALSE
         );
     """
+
     conn = get_connection()
     curr = conn.cursor()
     curr.execute(query)
     conn.commit()
+    curr.close()
     conn.close()
 
-# Deletes all relations, use with caution
+# Deletes all relations. Use with caution.
 def clear_relations():
     query = """
         DROP SCHEMA public CASCADE;
@@ -80,22 +91,41 @@ def clear_relations():
     curr = conn.cursor()
     curr.execute(query)
     conn.commit()
+    curr.close()
     conn.close()
 
 # Inserts a new user into the users relation and returns the new user_id
 def insert_user(u):
     query = """
-        INSERT INTO users (first_name, last_name, phone, email, gender, description, grad_year, major, address, preferred_payment, schedule) 
+        INSERT INTO users (
+            first_name, last_name, phone, email, gender,
+            description, grad_year, major, address,
+            preferred_payment, schedule
+        )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id,first_name, last_name, phone, email, gender, description, grad_year, major, address, preferred_payment, schedule;
+        RETURNING id;
     """
-    new_user_data= (u.first_name, u.last_name, u.phone, u.email, u.gender, u.description, u.grad_year, u.major, u.address, u.preferred_payment, u.schedule)
-
+    new_user_data = (
+        u.first_name,
+        u.last_name,
+        u.phone,
+        u.email,
+        u.gender,
+        u.description,
+        u.grad_year,
+        u.major,
+        u.address,
+        u.preferred_payment,
+        Json(u.schedule)
+    )
     conn = get_connection()
     curr = conn.cursor()
-    curr.execute(query,new_user_data)
+    curr.execute(query, new_user_data)
     conn.commit()
-    new_id=curr.fetchone()[0]
+
+    new_id = curr.fetchone()[0]
+
+    curr.close()
     conn.close()
 
     return new_id
@@ -104,28 +134,62 @@ def insert_user(u):
 def update_user(u):
     query = """
         UPDATE users
-        SET first_name = %s, last_name = %s, phone = %s, email = %s, gender = %s, description = %s, grad_year = %s, major = %s, schedule = %s, address = %s, preferred_payment = %s, car_id = %s
+        SET
+            first_name = %s,
+            last_name = %s,
+            phone = %s,
+            email = %s,
+            gender = %s,
+            description = %s,
+            grad_year = %s,
+            major = %s,
+            schedule = %s,
+            address = %s,
+            preferred_payment = %s,
+            car_id = %s
         WHERE id = %s;
     """
-    new_user_data= (u.first_name, u.last_name, u.phone, u.email, u.gender, u.description, u.grad_year, u.major, u.schedule, u.address, u.preferred_payment, u.car_id, u.id)
+
+    new_user_data = (
+        u.first_name,
+        u.last_name,
+        u.phone,
+        u.email,
+        u.gender,
+        u.description,
+        u.grad_year,
+        u.major,
+        Json(u.schedule),
+        u.address,
+        u.preferred_payment,
+        u.car_id,
+        u.id
+    )
 
     conn = get_connection()
     curr = conn.cursor()
-    curr.execute(query,new_user_data)
+    curr.execute(query, new_user_data)
     conn.commit()
+    curr.close()
     conn.close()
 
 # Returns the data of the row in users with the specified id
 def get_user_by_id(id):
     query = """
-            SELECT * 
-            FROM users 
-            WHERE id =  %s;
-        """
+        SELECT
+            id, first_name, last_name, phone, email,
+            gender, description, grad_year, major,
+            schedule, address, preferred_payment, car_id
+        FROM users
+        WHERE id = %s;
+    """
+
     conn = get_connection()
     curr = conn.cursor()
-    curr.execute(query,(id,))
+    curr.execute(query, (id,))
     row = curr.fetchone()
+
+    curr.close()
     conn.close()
 
     return row
@@ -133,18 +197,23 @@ def get_user_by_id(id):
 # Inserts a new car into the cars relation and returns the new id
 def insert_car(c):
     query = """
-        INSERT INTO cars (make, model, color, year, capacity) 
+        INSERT INTO cars (make, model, color, year, capacity)
         VALUES (%s, %s, %s, %s, %s)
-        RETURNING id, make, model, color, year, capacity;
+        RETURNING id;
     """
-    new_car_data= (c.make, c.model, c.color, c.year, c.capacity)
+
+    new_car_data = (c.make, c.model, c.color, c.year, c.capacity)
 
     conn = get_connection()
     curr = conn.cursor()
-    curr.execute(query,new_car_data)
+    curr.execute(query, new_car_data)
     conn.commit()
-    new_id=curr.fetchone()[0]
+
+    new_id = curr.fetchone()[0]
+
+    curr.close()
     conn.close()
+
     return new_id
 
 # Updates a row of the user relation
@@ -165,14 +234,17 @@ def update_car(c):
 # Returns the data of the row in cars with the specified id
 def get_car_by_id(id):
     query = """
-            SELECT * 
-            FROM cars 
-            WHERE id = %s;
-        """
+        SELECT id, make, model, color, year, capacity
+        FROM cars
+        WHERE id = %s;
+    """
+
     conn = get_connection()
     curr = conn.cursor()
-    curr.execute(query,(id,))
+    curr.execute(query, (id,))
     row = curr.fetchone()
+
+    curr.close()
     conn.close()
 
     return row
@@ -197,14 +269,17 @@ def insert_contact(sender, receiver, method, datetime):
 # Returns the data of the row in contacts with the specified id
 def get_contact_by_id(id):
     query = """
-            SELECT * 
-            FROM contacts 
-            WHERE id = %s;
-        """
+        SELECT id, sender, receiver, method, datetime
+        FROM contacts
+        WHERE id = %s;
+    """
+
     conn = get_connection()
     curr = conn.cursor()
-    curr.execute(query,(id,))
+    curr.execute(query, (id,))
     row = curr.fetchone()
+
+    curr.close()
     conn.close()
 
     return row
@@ -234,9 +309,10 @@ def get_verification(email):
     curr = conn.cursor()
     curr.execute(query,(email,))
     row = curr.fetchone()
+    curr.close()
     conn.close()
-
     return row
+
 
 # Counts a wrong guess against an email's current code
 def increment_verification_attempts(email):
