@@ -47,7 +47,7 @@ Find Drivers has one Display options icon on the right of its screen header.
 It opens a menu with a View section containing Compact and Expanded choices.
 The selected choice has a checkmark and light blue background. Selecting a view
 closes the menu and updates every card together. The menu can also be dismissed
-with its close button, by tapping outside it, or with Android Back / web Escape.
+by tapping outside it or with Android Back / web Escape.
 Sorting and filtering can be added as sections of the same menu in future work;
 no nonfunctional sorting or filtering controls are displayed.
 
