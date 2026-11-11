@@ -2,6 +2,7 @@ import os
 
 import psycopg2
 import pytest
+from hypothesis import HealthCheck, settings
 
 import db
 
@@ -22,6 +23,13 @@ DB_SETTINGS = {
     "port": int(os.environ.get("TEST_DB_PORT", "5432")),
 }
 TEST_DB_NAME = os.environ.get("TEST_DB_NAME", "lionlift_test")
+
+# Property tests: no time limit per example (CI machines vary in speed), and in
+# CI the same examples every run so a failure can always be reproduced
+settings.register_profile("default", deadline=None, suppress_health_check=[HealthCheck.too_slow])
+settings.register_profile("ci", deadline=None, derandomize=True, max_examples=200,
+                          suppress_health_check=[HealthCheck.too_slow])
+settings.load_profile("ci" if os.environ.get("CI") else "default")
 
 # Column order of the users table, see create_relations in db.py
 USER_COLUMNS = (
