@@ -12,19 +12,24 @@ import { Carousel } from "react-native-reanimated-carousel";
 
 export default function ProfileScreen() {
 
-  const data = [
+  const cards = [
     <View style={styles.card}>
-      <Text style={styles.heading}>About</Text>
-      <Text style={styles.subheading}>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-        eiusmod tempor incididunt ut labore et dolore magna aliqua.
-      </Text>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.heading}>About</Text>
+        <Text style={styles.subheading}>
+          Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
+          eiusmod tempor incididunt ut labore et dolore magna aliqua. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
+          eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+        </Text>
+      </View>
       <Divider />
-      <LabeledText label="Age" value="20" />
-      <LabeledText label="Gender" value="Male" />
-      <LabeledText label="Major" value="Computer Science" />
-      <LabeledText label="Graduation Year" value="2028" />
-      <LabeledText label="Preferred Payment" value="Venmo" />
+      <View style={{ flex: 1 }}>
+        <LabeledText label="Age" value="20" />
+        <LabeledText label="Gender" value="Male" />
+        <LabeledText label="Major" value="Computer Science" />
+        <LabeledText label="Graduation Year" value="2028" />
+        <LabeledText label="Preferred Payment" value="Venmo" />
+      </View>
     </View>,
 
     <View style={styles.card}>
@@ -48,7 +53,7 @@ export default function ProfileScreen() {
           <Text style={styles.heading}>Placeholder Name</Text>
         </View>
         <Carousel
-          data={data}
+          data={cards}
           style={{ flex: 1 }}
           renderItem={({ item }) => (
               <View style={{ flex: 1 }}>
@@ -56,6 +61,9 @@ export default function ProfileScreen() {
               </View>
           )}
         />
+        <View style={{ marginHorizontal: 24, marginBottom: 16 }}>
+          <BigButton text="Contact" onPress={() => {}} />
+        </View>
       </SafeAreaView>
     </GestureHandlerRootView>
   );
