@@ -97,12 +97,13 @@ def _run(query, params=(), write=False):
 
 
 # Creates the bans table. Two requests creating it at the same moment can
-# collide inside Postgres; the loser just uses the table the winner made.
+# collide inside Postgres (on the table or its row type); the loser just uses
+# the table the winner made.
 def _create_table(conn):
     try:
         conn.cursor().execute(CREATE_TABLE)
         conn.commit()
-    except (psycopg2.errors.UniqueViolation, psycopg2.errors.DuplicateTable):
+    except (psycopg2.errors.UniqueViolation, psycopg2.errors.DuplicateTable, psycopg2.errors.DuplicateObject):
         conn.rollback()
 
 
