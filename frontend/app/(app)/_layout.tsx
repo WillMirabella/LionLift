@@ -43,6 +43,7 @@ export default function NavBar() {
         name="map"
         options={{
           title: "Map",
+          headerShown: false,
           tabBarAccessibilityLabel: "Map",
           tabBarIcon: ({ focused, color, size }) => (
             <Ionicons name={focused ? "map" : "map-outline"} color={String(color)} size={size} />
