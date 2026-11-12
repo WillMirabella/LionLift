@@ -9,6 +9,7 @@ import {
 } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Carousel } from "react-native-reanimated-carousel";
+import ComplexSchedule from "../../components/schedule/complex-schedule";
 
 export default function ProfileScreen() {
 
@@ -33,8 +34,8 @@ export default function ProfileScreen() {
     </View>,
 
     <View style={styles.card}>
-      <Text style={styles.heading}>Schedule</Text>
       <View style={styles.map}>
+        <ComplexSchedule/>
       </View>
     </View>,
 
