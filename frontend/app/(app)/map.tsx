@@ -1,10 +1,11 @@
-import PlaceholderScreen from "../../components/placeholder-screen";
+import { View } from 'react-native';
+import CampusMap from '../../components/campus-map';
 
+// Map tab: shows the area around campus
 export default function MapScreen() {
   return (
-    <PlaceholderScreen
-      icon="map-outline"
-      description="Explore pickup areas and routes to campus. The interactive map is coming soon."
-    />
+    <View style={{ flex: 1 }}>
+      <CampusMap />
+    </View>
   );
 }
