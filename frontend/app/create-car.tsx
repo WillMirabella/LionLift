@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
-import {Alert,KeyboardAvoidingView,Platform, StatusBar, StyleSheet,Text, View, } from "react-native";
+import { useState, useRef } from "react";
+import {Alert,KeyboardAvoidingView,Pressable,Platform, TextInputInstance, StatusBar, StyleSheet,Text, View, } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BigButton from "../components/buttons/big-button";
-import DriverDetailsSection, {type CarDetails,} from "../components/driver-details-section";
 import { colors } from "../constants/colors";
+import Stepper from "../components/stepper";
+import CustomTextInput from "../components/custom-text-input";
 
 export default function CreateCarScreen() {
   const params = useLocalSearchParams<{
@@ -18,53 +19,62 @@ export default function CreateCarScreen() {
     state: string;
     zipCode: string;
     schedule: string;
-    plansToDrive: string;
   }>();
 
-  const [car, setCar] = useState<CarDetails>({
+  const [car, setCar] = useState({
     make: "",
     model: "",
     year: "",
     color: "",
-  });
-  const [documentsConfirmed, setDocumentsConfirmed] = useState(false);
+  }); 
+  
+  const inputs = useRef<Array<TextInputInstance | null>>([]);
 
-  function updateCar(field: keyof CarDetails, value: string) {
+  const [driver, setDriver] = useState(false);
+  const [confirmed, setConfirm] = useState(false);
+
+  function updateCar(field: keyof typeof car, value: string) {
     setCar((current) => ({ ...current, [field]: value }));
+  }
+ 
+  function handleConfirm() {
+    setConfirm(previousState => !previousState);
   }
 
   function handleFinish() {
-    if (
-      !car.make.trim() ||
-      !car.model.trim() ||
-      !car.year.trim() ||
-      !car.color.trim()
-    ) {
-      Alert.alert("Missing details", "Please complete all car fields.");
-      return;
-    }
+    if(driver){
+      if (
+        !car.make.trim() ||
+        !car.model.trim() ||
+        !car.year.trim() ||
+        !car.color.trim()
+      ) {
+        Alert.alert("Missing details", "Please complete all car fields.");
+        return;
+      }
 
-    const modelYear = Number(car.year.trim());
+      const modelYear = Number(car.year.trim());
 
-    if (
-      !/^\d{4}$/.test(car.year.trim()) ||
-      modelYear < 1998 ||
-      modelYear > new Date().getFullYear() + 1
-    ) {
-      Alert.alert("Model year", "Enter a valid four-digit model year.");
-      return;
-    }
+      if (
+        !/^\d{4}$/.test(car.year.trim()) ||
+        modelYear < 1998 ||
+        modelYear > new Date().getFullYear() + 1
+      ) {
+        Alert.alert("Model year", "Enter a valid four-digit model year.");
+        return;
+      }
 
-    if (!documentsConfirmed) {
-      Alert.alert(
-        "Driver confirmation",
-        "Please confirm your license, insurance, and registration are up to date."
-      );
-      return;
+      if (!confirmed) {
+        Alert.alert(
+          "Driver confirmation",
+          "Please confirm your license, insurance, and registration are up to date."
+        );
+        return;
+      }
     }
 
     router.replace({
-      pathname: "/(app)/find-drivers",
+      pathname: "/welcome",
       params: {
         ...params,
         carMake: car.make.trim(),
@@ -74,6 +84,12 @@ export default function CreateCarScreen() {
         documentsConfirmed: "true",
       },
     });
+  }
+  function handleYes(){
+    setDriver(true);
+  }
+  function handleNo(){
+    setDriver(false);
   }
 
   return (
@@ -87,20 +103,102 @@ export default function CreateCarScreen() {
           style={styles.keyboardContainer}
         >
           <View style={styles.sheet}>
-            <Text style={styles.heading}>Driver information</Text>
+            <Stepper
+                step={7}
+                steps={7}
+            />
+            <Text style={styles.heading}>Enter Car Information</Text>
+             <Text style={styles.label}>Do you want to offer rides?</Text>
 
-            <View style={styles.fields}>
-              <DriverDetailsSection
-                car={car}
-                onCarChange={updateCar}
-                documentsConfirmed={documentsConfirmed}
-                onDocumentsConfirmedChange={setDocumentsConfirmed}
-              />
-            </View>
+              <View style={{ flexDirection: "row", gap: 12  }}>
+                <View style={{ flex: 1 }}>
+                  {driver ? (
+                    <BigButton text="Yes" onPress={handleYes} borderOnly={false}/>
+                  ):
+                  (
+                    <BigButton text="Yes" onPress={handleYes} borderOnly={true}/>
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  {driver ? (
+                    <BigButton text="No" onPress={handleNo} borderOnly={true}/>
+                  ):
+                  (
+                    <BigButton text="No" onPress={handleNo} borderOnly={false}/>
+                  )}
+                </View>
+              </View>
+              
+              {driver && (
+                <View>
+                  <View style={{ flexDirection: "row", gap: 12  }}>
+                    <View style={{ flex: 1 }}>
+                      <CustomTextInput
+                        ref={(el) => { inputs.current[0] = el; }}
+                        label="Make"
+                        placeholder="Toyota"
+                        value={car.make}
+                        onChangeText={(value) => updateCar("make", value)}
+                        returnKeyType="next"
+                        onSubmitEditing={() => inputs.current[1]?.focus()}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <CustomTextInput
+                        ref={(el) => { inputs.current[1] = el; }}
+                        label="Model"
+                        placeholder="Corolla"
+                        value={car.model}
+                        onChangeText={(value) => updateCar("model", value)}
+                        returnKeyType="next"
+                        onSubmitEditing={() => inputs.current[2]?.focus()}
+                      />
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: "row", gap: 12  }}>
+                    <View style={{ flex: 1 }}>
+                      <CustomTextInput
+                        ref={(el) => { inputs.current[2] = el; }}
+                        label="Year"
+                        placeholder="2020"
+                        value={car.year}
+                        onChangeText={(value) => updateCar("year", value)}
+                        keyboardType="numeric"
+                        returnKeyType="next"
+                        onSubmitEditing={() => inputs.current[3]?.focus()}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <CustomTextInput
+                        ref={(el) => { inputs.current[3] = el; }}
+                        label="Color"
+                        placeholder="Blue"
+                        value={car.color}
+                        onChangeText={(value) => updateCar("color", value)}
+                        returnKeyType="done"
+                      />
+                    </View>
+                  </View>
+                    <View style={{ flexDirection: "row", gap: 12  }}>
+                      <View style={{aspectRatio: "1/1", marginVertical:12, top:-12}}>
+                        {confirmed ? (
+                          <BigButton text="" onPress={handleConfirm} borderOnly={false}/>
+                        ):
+                        (
+                          <BigButton text="" onPress={handleConfirm} borderOnly={true}/>
+                        )}
+                      </View>
+                      <View style={{flex: 1}}>
+                        <Text style={styles.text}>
+                          I confirm my driver’s license, car insurance, and registration are
+                          up to date.
+                        </Text>
+                      </View>
+                    </View>
 
-            <View style={styles.button}>
+                </View>
+              )}
               <BigButton text="Next" onPress={handleFinish} />
-            </View>
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -135,8 +233,29 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginTop: 24,
   },
-  fields: {},
-  button: {
-    marginTop: 0,
+  label: {
+    color: colors.secondary,
+    fontSize: 14,
+    fontWeight: "bold",
+    marginTop: 12,
+  },
+  text: {
+    color: colors.primary,
+    fontSize: 14,
+    marginVertical: 12,
+  },
+  checkbox: {
+    width: 26,
+    height: 26,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 5,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkmark: {
+    color: colors.primary,
+    fontSize: 18,
+    fontWeight: "bold",
   },
 });

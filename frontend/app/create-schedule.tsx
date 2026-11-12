@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import {Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, View,} from "react-native";
+import {Alert, KeyboardAvoidingView, Platform, ScrollView, StatusBar, StyleSheet, Text, View,} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BigButton from "../components/buttons/big-button";
 import ScheduleFields, {type DaySchedule,type ScheduleTime,} from "../components/schedule/schedule-fields";
 import { colors } from "../constants/colors";
+import Stepper from "../components/stepper";
 
 export default function CreateScheduleScreen() {
   const params = useLocalSearchParams<{
@@ -20,7 +21,6 @@ export default function CreateScheduleScreen() {
   }>();
 
   const [schedule, setSchedule] = useState<DaySchedule[]>([]);
-  const [plansToDrive, setPlansToDrive] = useState<boolean | null>(null);
 
   function timeToMinutes(time: ScheduleTime): number | null {
     const hour = Number(time.hour);
@@ -69,13 +69,11 @@ export default function CreateScheduleScreen() {
         );
         return;
       }
+      router.replace({ pathname: "/create-car", params: params });
+ 
     }
 
-    if (plansToDrive === null) {
-      Alert.alert("Ride preferences", "Please choose Yes or No.");
-      return;
-    }
-
+    
     const scheduleForRoute = schedule.map((day) => ({
       day: day.day,
       departureTime: formatTime(day.departureTime),
@@ -93,14 +91,7 @@ export default function CreateScheduleScreen() {
       state: params.state,
       zipCode: params.zipCode,
       schedule: JSON.stringify(scheduleForRoute),
-      plansToDrive: String(plansToDrive),
     };
-
-    if (plansToDrive) {
-      router.push({ pathname: "/create-car", params: setupParams });
-    } else {
-      router.replace({ pathname: "/(app)/find-drivers", params: setupParams });
-    }
   }
 
   return (
@@ -118,34 +109,15 @@ export default function CreateScheduleScreen() {
               contentContainerStyle={styles.content}
               keyboardShouldPersistTaps="handled"
             >
-              <Text style={styles.heading}>Set your schedule</Text>
+              <Stepper
+                step={6}
+                steps={7}
+              />
+              <Text style={styles.heading}>Enter Schedule</Text>
 
               <ScheduleFields schedule={schedule} onChange={setSchedule} />
 
-              <Text style={styles.question}>Do you plan to offer rides?</Text>
-
-              <View style={styles.answerRow}>
-                {[true, false].map((answer) => {
-                  const selected = plansToDrive === answer;
-                  const label = answer ? "Yes" : "No";
-
-                  return (
-                    <Pressable
-                      key={label}
-                      onPress={() => setPlansToDrive(answer)}
-                      accessibilityRole="radio"
-                      accessibilityState={{ selected }}
-                      style={[
-                        styles.answerButton,
-                        selected && styles.answerButtonSelected,
-                      ]}
-                    >
-                      <Text style={styles.answerText}>{label}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-
+             
               <View style={styles.nextButton}>
                 <BigButton text="Next" onPress={handleNext} />
               </View>
@@ -185,34 +157,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "bold",
     marginTop: 18,
-  },
-  question: {
-    color: colors.secondary,
-    fontSize: 13,
-    fontWeight: "bold",
-    marginTop: 12,
-    marginBottom: 6,
-  },
-  answerRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  answerButton: {
-    flex: 1,
-    alignItems: "center",
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-  },
-  answerButtonSelected: {
-    backgroundColor: colors.accent,
-    borderColor: colors.secondary,
-  },
-  answerText: {
-    color: colors.primary,
-    fontSize: 15,
-    fontWeight: "600",
   },
   nextButton: {
     marginTop: 10,

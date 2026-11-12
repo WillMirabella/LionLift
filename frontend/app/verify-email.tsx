@@ -82,7 +82,7 @@ export default function VerifyEmailScreen() {
             />
             <Stepper
               step={1}
-              steps={5}
+              steps={7}
             />
             <Text style={styles.heading}>Verify Email</Text>
             <CustomTextInput

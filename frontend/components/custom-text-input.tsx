@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { colors } from "../constants/colors";
-import { useState } from "react";
+import { useState, Ref, ComponentRef } from "react";
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 type Props = {
@@ -11,6 +11,8 @@ type Props = {
   keyboardType?: "default" | "email-address" | "numeric" | "phone-pad" ; // If this ever has to be used with more keyboard types, we can add them here.
   onSubmitEditing?: () => void;
   isPassword?: boolean;
+  returnKeyType?: "next" | "done" | "go" | "none";
+  ref?: Ref<ComponentRef<typeof TextInput>>;
 };
 
 export default function CustomTextInput({
@@ -21,6 +23,8 @@ export default function CustomTextInput({
   keyboardType,
   onSubmitEditing,
   isPassword,
+  returnKeyType,
+  ref
 }: Props){
   const [showPassword, setShowPassword] = useState(false);
 
@@ -38,9 +42,10 @@ export default function CustomTextInput({
           autoCapitalize="none"
           autoCorrect={false}
           accessibilityLabel={label}
-          returnKeyType="next"
+          returnKeyType={returnKeyType || "next"}
           onSubmitEditing={onSubmitEditing}
           secureTextEntry={isPassword ? !showPassword : false}
+          ref={ref}
         />
 
         {isPassword && (

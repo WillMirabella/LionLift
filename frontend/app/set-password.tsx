@@ -41,7 +41,7 @@ export default function SetPasswordScreen() {
       }
       else{
         router.replace({
-          pathname: '/(app)/find-drivers'
+          pathname: '/create-profile'
         });
       }
     }
@@ -77,7 +77,7 @@ export default function SetPasswordScreen() {
             <View style={styles.sheet}>
               <Stepper
                 step={3}
-                steps={5}
+                steps={7}
               />
               <Text style={styles.heading}>Set Password</Text>
 

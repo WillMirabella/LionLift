@@ -15,8 +15,7 @@ export default function Root() {
         <Stack.Screen name="create-address" options={{ headerShown: false }} />
         <Stack.Screen name="create-schedule" options={{ headerShown: false }} />
         <Stack.Screen name="create-car" options={{ headerShown: false }} />
-
-
+        <Stack.Screen name="welcome" options={{ headerShown: false }} />
     </Stack>
   );
 }

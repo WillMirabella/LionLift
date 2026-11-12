@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useState } from "react";
+import { useState, useRef, Fragment } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -8,12 +8,14 @@ import {
   StyleSheet,
   Text,
   View,
+  TextInputInstance
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import BigButton from "../components/buttons/big-button";
 import CustomTextInput from "../components/custom-text-input";
 import { colors } from "../constants/colors";
+import Stepper from "../components/stepper";
 
 export default function CreateAddressScreen() {
   const params = useLocalSearchParams<{
@@ -28,6 +30,8 @@ export default function CreateAddressScreen() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zipCode, setZipCode] = useState("");
+
+  const inputs = useRef<Array<TextInputInstance | null>>([]);
 
   function handleNext() {
     if (
@@ -65,70 +69,81 @@ export default function CreateAddressScreen() {
   }
 
   return (
-    <>
+    <Fragment>
       <StatusBar barStyle="light-content" backgroundColor={colors.secondary} />
-      <SafeAreaView style={styles.topSafeArea} />
-
+      <SafeAreaView style={{ flex: 0, backgroundColor: colors.secondary }} />
       <View style={styles.container}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          style={styles.keyboardContainer}
-        >
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}  style={{ flex: 1 }}>
           <View style={styles.sheet}>
+            <Stepper
+                step={5}
+                steps={7}
+            />
             <Text style={styles.heading}>Add your Address</Text>
 
             <View style={styles.fields}>
-              <CustomTextInput
-                label="Street address"
-                placeholder="Street address"
-                value={street}
-                onChangeText={setStreet}
-              />
-
-              <CustomTextInput
-                label="City"
-                placeholder="City"
-                value={city}
-                onChangeText={setCity}
-              />
-
-              <CustomTextInput
-                label="State"
-                placeholder="State"
-                value={state}
-                onChangeText={setState}
-              />
-
-              <CustomTextInput
-                label="ZIP code"
-                placeholder="19001"
-                value={zipCode}
-                onChangeText={setZipCode}
-                keyboardType="numeric"
-              />
-            </View>
-
-            <View style={styles.button}>
+              <View style={{ flexDirection: "row", gap: 12  }}>
+                <View style={{ flex: 1 }}>
+                  <CustomTextInput
+                    ref={(el) => { inputs.current[0] = el; }}
+                    label="Street address"
+                    placeholder="Street address"
+                    value={street}
+                    onChangeText={setStreet}
+                    returnKeyType="next"
+                    onSubmitEditing={() => inputs.current[1]?.focus()}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <CustomTextInput
+                    ref={(el) => { inputs.current[1] = el; }}
+                    label="City"
+                    placeholder="City"
+                    value={city}
+                    onChangeText={setCity}
+                    returnKeyType="next"
+                    onSubmitEditing={() => inputs.current[2]?.focus()}
+                  />
+                </View>
+              </View>
+              <View style={{ flexDirection: "row", gap: 12  }}>
+                <View style={{ flex: 1 }}>
+                  <CustomTextInput
+                    ref={(el) => { inputs.current[2] = el; }}
+                    label="State"
+                    placeholder="State"
+                    value={state}
+                    onChangeText={setState}
+                    returnKeyType="next"
+                    onSubmitEditing={() => inputs.current[3]?.focus()}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <CustomTextInput
+                    ref={(el) => { inputs.current[3] = el; }}
+                    label="ZIP code"
+                    placeholder="19001"
+                    value={zipCode}
+                    onChangeText={setZipCode}
+                    keyboardType="numeric"
+                    returnKeyType="done"
+                    onSubmitEditing={handleNext}
+                  />
+                </View>
+              </View>
               <BigButton text="Next" onPress={handleNext} />
             </View>
           </View>
         </KeyboardAvoidingView>
       </View>
-    </>
+    </Fragment>
   );
 }
 
 const styles = StyleSheet.create({
-  topSafeArea: {
-    flex: 0,
-    backgroundColor: colors.secondary,
-  },
   container: {
     flex: 1,
     backgroundColor: colors.secondary,
-  },
-  keyboardContainer: {
-    flex: 1,
   },
   sheet: {
     flex: 1,
@@ -147,9 +162,5 @@ const styles = StyleSheet.create({
   },
   fields: {
     flex: 1,
-  },
-  button: {
-    marginTop: -22,
-    marginBottom: 22,
-  },
+  }
 });
