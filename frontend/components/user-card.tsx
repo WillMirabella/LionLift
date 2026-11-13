@@ -8,40 +8,46 @@ import { View, StyleSheet, Text } from "react-native";
 import { colors } from "../constants/colors";
 import DaySchedule from "./schedule/day-schedule";
 import { shadowStyles } from "../constants/shadow";
+import { map } from "../eslint.config";
 
 type Props = {
   expanded?: boolean;
+  mapMode?: boolean;
 };
 
-export default function UserCard({ expanded=false }: Props) {
+
+export default function UserCard({ expanded=false, mapMode=false}: Props) {
+
+  const isMapMode = mapMode ?? false;
+
   return (
-    <View style={styles.card} accessibilityRole="button">
+    <View style={styles(mapMode).card} accessibilityRole="button">
         <View style={{ flexDirection: "row" }}>
-            <View style={styles.profilePicture}/>
+            <View style={styles(mapMode).profilePicture}/>
             <View style={{ flex: 1, justifyContent: "space-between", marginVertical: 8 }}>
-                <Text style={styles.heading}>Placeholder Name</Text>
-                <Text style={styles.subheading}>4 miles away</Text> 
-                <Text style={styles.subheading}>99% match</Text>     
+                <Text style={styles(mapMode).heading}>Placeholder Name</Text>
+                <Text style={styles(mapMode).subheading}>4 miles away</Text> 
+                <Text style={styles(mapMode).subheading}>99% match</Text>     
             </View>
         </View>
 
         <DaySchedule></DaySchedule>
         
-        {expanded && <View style={styles.map}></View>}
+        {expanded && <View style={styles(mapMode).map}></View>}
         
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = (mapMode: boolean | undefined) => StyleSheet.create({
   card: {
-    backgroundColor: colors.background,
+    backgroundColor: (mapMode ?? false) ? "transparent" : colors.background,
     borderWidth: 0,
-    borderColor: colors.secondary,
-    padding: 16,
-    borderRadius: 24,
-    marginVertical: 12,
-    ...shadowStyles
+    borderColor: (mapMode ?? false) ? "transparent" : colors.secondary,
+    padding: (mapMode ?? false) ? 0 : 16,
+    borderRadius: (mapMode ?? false) ? 0 : 24,
+    marginVertical: (mapMode ?? false) ? 0 : 12,
+    ...(!(mapMode ?? false) && shadowStyles),
   },
   profilePicture: {
     width: 100,
