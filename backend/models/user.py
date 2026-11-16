@@ -1,12 +1,14 @@
 from models.car import Car
+from schedule_similarity import schedule_similarity
 import db
 
 class User:
-    def __init__(self, id, first_name, last_name, phone, email, gender, description, grad_year, major, schedule):
+    def __init__(self, email, password, first_name=None, last_name=None, phone=None, gender=None, description=None, grad_year=None, major=None, schedule=None):
+        self.email = email
+        self.password = password
         self.first_name = first_name
         self.last_name = last_name
         self.phone = phone
-        self.email = email
         self.gender = gender
         self.description = description
         self.grad_year = grad_year
@@ -16,8 +18,6 @@ class User:
         self.address = None
         self.preferred_payment = None
         self.car_id = None
-        if(id == None): self.id = self.to_db() # Primary Key
-        else: self.id = id
 
     def __str__(self):
         # Format schedule
@@ -31,19 +31,19 @@ class User:
         schedule_str = "\n" if result else str(None)
         schedule_str += "\n".join(result)
 
-        return ("id: " + str(self.id) +
-              "\nfirst_name: " + self.first_name +
-              "\nlast_name: " + self.last_name +
-              "\nphone: " + str(self.phone) +
-              "\nemail: " + self.email +
-              "\ngender: " + self.gender +
-              "\ndescription: " + self.description +
-              "\ngrad_year: " + str(self.grad_year) +
-              "\nmajor: " + self.major +
-              "\naddress: " + str(self.address) +
-              "\npreferred_payment: " + str(self.preferred_payment) +
-              "\nschedule: " + schedule_str +
-              "\ncar_id: " + str(self.car_id))
+        return ("\nfirst_name: " + self.first_name +
+                "\nlast_name: " + self.last_name +
+                "\nphone: " + str(self.phone) +
+                "\nemail: " + self.email +
+                "\npassword: " + self.password +
+                "\ngender: " + self.gender +
+                "\ndescription: " + self.description +
+                "\ngrad_year: " + str(self.grad_year) +
+                "\nmajor: " + self.major +
+                "\naddress: " + str(self.address) +
+                "\npreferred_payment: " + str(self.preferred_payment) +
+                "\nschedule: " + schedule_str +
+                "\ncar_id: " + str(self.car_id))
 
 
     # Promotes a user to a driver by filling in extra fields and links a user to a specified car
@@ -64,6 +64,10 @@ class User:
             raise ValueError("start_time and end_time must be between 0 and 24 (inclusive)")
 
         self.schedule[day_index] = (start_time, end_time)
+
+    # Returns how compatible this user's schedule is with another user's, from 0 to 100
+    def schedule_similarity(self, other):
+        return schedule_similarity(self.schedule, other.schedule)
 
     # Creates a user object from a row of the db
     @classmethod
