@@ -48,7 +48,7 @@ export default function SignInScreen() {
     }
     else{
       router.replace({
-          pathname: '/(app)/find-drivers'
+          pathname: '/(app)/browse'
         });
       }
   }

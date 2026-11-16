@@ -41,7 +41,7 @@ export default function SetPasswordScreen() {
       }
       else{
         router.replace({
-          pathname: '/(app)/find-drivers'
+          pathname: '/(app)/browse'
         });
       }
     }
