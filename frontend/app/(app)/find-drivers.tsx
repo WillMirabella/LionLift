@@ -1,10 +1,13 @@
+import { ScrollView, View } from "react-native";
 import PlaceholderScreen from "../../components/placeholder-screen";
+import UserCard from "../../components/user-card";
+import { screenStyles as styles } from '../../constants/screen-styles';
 
 export default function FindDriversScreen() {
   return (
-    <PlaceholderScreen
-      icon="car-outline"
-      description="Find fellow Penn State Abington commuters who can share a ride. Driver browsing and filters are coming soon."
-    />
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+      <UserCard/>
+      <UserCard expanded />
+    </ScrollView>
   );
 }
