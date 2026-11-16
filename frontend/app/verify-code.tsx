@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { OtpInput } from "react-native-otp-entry";
 import { useLocalSearchParams } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import Stepper from "../components/stepper";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -59,7 +60,13 @@ export default function VerifyCodeScreen() {
         console.log(result['error']);
         setErrorText(result['error']);
       }
-      else router.replace("/(app)/find-drivers");
+      else 
+        {
+          router.replace({
+            pathname: '/set-password',
+            params: { email: email },
+          });
+        }
     } catch (error) {
       console.error('Error submitting data:', error);
     }
@@ -83,9 +90,13 @@ export default function VerifyCodeScreen() {
         <View style={{ flex: 1, backgroundColor: colors.secondary }}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}  style={{ flex: 1 }}>
           <View style={styles.sheet}>
+            <Stepper
+              step={2}
+              steps={5}
+            />
             <Text style={styles.heading}>Enter Code</Text>
 
-            <View style={{gap: 6}}>
+            <View style={{gap: 6, marginVertical: 12}}>
               <Text style={styles.text}>Enter the 6-Digit verfication code sent to: </Text>
 
               <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
