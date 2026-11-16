@@ -14,10 +14,11 @@ export default function ComplexSchedule() {
   ));
 
   let grid = [];
-  // generate data for the flat list
+
+  // generate time slots for the flat list
   const timeSlots = [];
   for (let hour = startTime; hour <= endTime; hour++) {
-    timeSlots.push({ id: hour, title: `${hour % 12 || 12}:00` });
+    timeSlots.push({ id: hour, title: `${hour % 12 || 12}:00` + (hour < 12 ? " AM" : " PM") });
   }
 
   grid.push(
@@ -36,13 +37,15 @@ export default function ComplexSchedule() {
     </View>
   );
 
-  // generate data for the flat list
+  // generate grid cells for the flat list
   
   for (let dayIndex = 0; dayIndex < 5; dayIndex++) {
     const gridCells = [];
     for (let hour = startTime; hour <= endTime; hour += 0.5) {
       gridCells.push({ id: hour, filled: (exampleSchedule[dayIndex] && exampleSchedule[dayIndex]![0] <= hour && exampleSchedule[dayIndex]![1] > hour) });
     }
+    // create a style with bottom and right borders for the grid cells, except for the last column and last row
+
     grid.push(
       <View key={`day-${dayIndex}`} style={styles.gridCol}>
         <FlatList
@@ -50,7 +53,7 @@ export default function ComplexSchedule() {
           scrollEnabled={false}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
-            <View style={item.filled ? styles.gridCellFilled : styles.gridCellBordered}/>
+            <View style={item.filled ? styles.gridCellFilled : (dayIndex == 4 ? [styles.gridCellBordered, { borderRightWidth: 0 }] : styles.gridCellBordered)}/>
           )}
           keyExtractor={(item) => item.id.toString()}
         />
@@ -58,12 +61,9 @@ export default function ComplexSchedule() {
     );
   }
 
-  
-
-
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <View style={{ flex: 1/12, flexDirection: "row" }}>
+    <View style={ styles.schedule }>
+      <View style={ [styles.row, { paddingBottom: 5 }] }>
         <View style={{ flex: 1 }} />
         {dayTexts}
       </View>
@@ -75,8 +75,11 @@ export default function ComplexSchedule() {
 }
 
 const styles = StyleSheet.create({
-  row: {
+  schedule: {
     flex: 1,
+    backgroundColor: colors.background,
+  },
+  row: {
     flexDirection: "row",
     backgroundColor: colors.background,
   },
@@ -99,6 +102,8 @@ const styles = StyleSheet.create({
   },
   gridCol: {
     flex: 1,
+    borderRightWidth: 1,
+    borderRightColor: colors.border,
   },
   gridCellTopHalf: {
     flex: 1, 
@@ -123,7 +128,6 @@ const styles = StyleSheet.create({
     height: 15,
     borderColor: colors.border,
     borderBottomWidth: 1,
-    borderRightWidth: 1,
   },
   gridCellFilled: {
     flex: 1,
