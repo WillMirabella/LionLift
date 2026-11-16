@@ -35,10 +35,11 @@ def create_relations():
         );
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
+            email VARCHAR(100),
+            password VARCHAR(100),
             first_name VARCHAR(100),
             last_name VARCHAR(100),
             phone VARCHAR(100),
-            email VARCHAR(100),
             gender VARCHAR(100),
             description VARCHAR(100),
             grad_year INTEGER,
@@ -85,11 +86,11 @@ def clear_relations():
 # Inserts a new user into the users relation and returns the new user_id
 def insert_user(u):
     query = """
-        INSERT INTO users (first_name, last_name, phone, email, gender, description, grad_year, major, address, preferred_payment, schedule) 
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO users (email, password,first_name, last_name, phone, gender, description, grad_year, major, address, preferred_payment, schedule) 
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id,first_name, last_name, phone, email, gender, description, grad_year, major, address, preferred_payment, schedule;
     """
-    new_user_data= (u.first_name, u.last_name, u.phone, u.email, u.gender, u.description, u.grad_year, u.major, u.address, u.preferred_payment, u.schedule)
+    new_user_data= (u.email, u.password, u.first_name, u.last_name, u.phone, u.gender, u.description, u.grad_year, u.major, u.address, u.preferred_payment, u.schedule)
 
     conn = get_connection()
     curr = conn.cursor()
@@ -125,6 +126,21 @@ def get_user_by_id(id):
     conn = get_connection()
     curr = conn.cursor()
     curr.execute(query,(id,))
+    row = curr.fetchone()
+    conn.close()
+
+    return row
+
+# Returns the data of the row in users with the specified email
+def get_user_by_email(email):
+    query = """
+            SELECT * 
+            FROM users 
+            WHERE email =  %s;
+        """
+    conn = get_connection()
+    curr = conn.cursor()
+    curr.execute(query,(email,))
     row = curr.fetchone()
     conn.close()
 

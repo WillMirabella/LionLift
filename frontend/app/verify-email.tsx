@@ -12,6 +12,8 @@ import CustomTextInput from "../components/custom-text-input";
 import BigButton from "../components/buttons/big-button";
 import { KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Stepper from "../components/stepper";
+import BackButton from "../components/buttons/back-button";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -47,10 +49,8 @@ export default function VerifyEmailScreen() {
       }
       else{
         if(result['status']=="already_verified"){
-          router.replace({
-            pathname: '/already-exists',
-            params: { email: email },
-          });
+          setErrorText("An account already exists with this email");
+          console.log(result['status']);
         }else{
           router.replace({
             pathname: '/verify-code',
@@ -63,6 +63,13 @@ export default function VerifyEmailScreen() {
     }
   }
 
+  function goBack(){
+    router.replace({
+            pathname: '/sign-in',
+            params: { email: email },
+          });
+  }
+
   return (
     <Fragment>
         <StatusBar barStyle="light-content" backgroundColor={colors.secondary} />
@@ -70,7 +77,14 @@ export default function VerifyEmailScreen() {
         <View style={{ flex: 1, backgroundColor: colors.secondary }}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}  style={{ flex: 1 }}>
           <View style={styles.sheet}>
-            <Text style={styles.heading}>Verify PSU Email</Text>
+            <BackButton
+              onPress={goBack}
+            />
+            <Stepper
+              step={1}
+              steps={5}
+            />
+            <Text style={styles.heading}>Verify Email</Text>
             <CustomTextInput
               label="Penn State Email"
               placeholder="abc123@psu.edu"

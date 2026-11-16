@@ -16,28 +16,43 @@ import SmallButton from "../components/buttons/small-button";
 import Divider from "../components/divider";
 import { KeyboardAvoidingView } from "react-native";
 
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
 export default function SignInScreen() {
+  const [errorText, setErrorText] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  function handleSignIn() {
-    // Warning: I have temporatily added an automatic redirect to the Find Drivers tab for demonstration purposes. This will be removed when authentication is implemented.
-    router.replace("/(app)/find-drivers");
+  const handleSignIn = async () => {
+    const normalizedEmail=email.trim().toLowerCase();
+    const parts = normalizedEmail.split('@');
 
-    // Uncomment the following code when authentication is implemented.
-    /*if (!email.trim() || !password) {
-      Alert.alert(
-        'Missing details',
-        'Please enter your email and password.'
-      );
+    if (!normalizedEmail || !password) {
+      setErrorText('Enter an email and password');
       return;
     }
+    else if(parts.length!=2 || parts[1]!="psu.edu"){
+      setErrorText("Please use your @psu.edu email")
+      return;
+    };
 
-    Alert.alert(
-      'Preview only',
-      'Authentication will be connected later.'
-    );*/
+    const response = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json',},
+      body: JSON.stringify({ email: normalizedEmail, password: password }),
+    });
+    const result = await response.json();
+    if (result['error']!=null){
+      console.log(result['error']);
+      setErrorText(result['error']);
+    }
+    else{
+      router.replace({
+          pathname: '/(app)/find-drivers'
+        });
+      }
   }
+      
   function handleSignUp(){
     router.replace("/verify-email");
   }
@@ -73,7 +88,7 @@ export default function SignInScreen() {
               onSubmitEditing={handleSignIn}
             />
 
-            <View style={{ flexDirection: "row-reverse" }}>
+            <View style={{ flexDirection: "row-reverse",  justifyContent: 'space-between'}}>
               <SmallButton
                 text="Forgot password?"
                 onPress={() =>
@@ -83,6 +98,9 @@ export default function SignInScreen() {
                   )
                 }
               ></SmallButton>
+              {errorText.length > 0 && (
+                <Text style={styles.errorText}>{errorText}</Text>
+              )}
             </View>
 
             <BigButton text="Sign in" onPress={handleSignIn} />
@@ -139,4 +157,10 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginVertical: 24,
   },
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
+    fontWeight: "bold",
+    marginVertical: 12,
+  }
 });
