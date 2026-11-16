@@ -1,5 +1,5 @@
-import MapView, { Marker, Circle, Callout } from 'react-native-maps';
-import { useState } from "react";
+import MapView, { Marker, Circle, Callout, PROVIDER_GOOGLE } from 'react-native-maps';
+import { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -11,19 +11,30 @@ import UserCard from "../../components/user-card";
 import { shadowStyles } from '../../constants/shadow';
 import { Ionicons } from '@expo/vector-icons';
 
+type userLocation = [string, string];
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
 export default function MapScreen() {
-  
-  const [markers, setMarkers] = useState([
-    {
-      latlng: { latitude: 40.22840, longitude: -74.93234 },
-    },
-    {
-      latlng: { latitude: 39.95287, longitude: -75.16548 },
-    },
-    {
-      latlng: { latitude: 40.06967, longitude: -75.12552 },
+  const [userLocations, setUsers] = useState<userLocation[]>([]);
+
+  useEffect(() => {
+    handleGetAllUsers();
+  }, [])
+
+  // Trys to verify a verification code
+  const handleGetAllUsers = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/users/all-locations`, {
+        method: 'GET',
+      });
+
+      const result: userLocation[] = await response.json();
+      setUsers(result);
+    } catch (error) {
+      console.error('Error submitting data:', error);
     }
-  ]);
+  }
 
   return (
     <>
@@ -38,10 +49,13 @@ export default function MapScreen() {
         }}
       >
         {/* User markers */}
-        {markers.map((marker, index) => (
+        {userLocations.map((location, index) => (
           <Marker
             key={index}
-            coordinate={marker.latlng}
+            coordinate={{
+              latitude: Number(location[0]),
+              longitude: Number(location[1]),
+            }}
             tracksViewChanges={false}
           >
             <Ionicons
@@ -59,10 +73,13 @@ export default function MapScreen() {
         ))}
 
         {/* User radii */}
-        {markers.map((marker, index) => (
+        {userLocations.map((location, index) => (
           <Circle
             key={index}
-            center={marker.latlng}
+            center={{
+              latitude: Number(location[0]),
+              longitude: Number(location[1]),
+            }}
             radius={3000}
             strokeWidth={2}
             strokeColor={`${colors.secondary}80`}
