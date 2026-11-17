@@ -3,7 +3,7 @@ import { colors } from "../../constants/colors";
 import { usePanGesture, GestureDetector, GestureHandlerRootView, Gesture, Touchable } from 'react-native-gesture-handler';
 import { useState } from "react";
 
-const exampleSchedule = [[12, 15], [13, 16], [9, 18], null, [12, 13]];
+var exampleSchedule = [[12, 15], [13, 16], [9, 18], null, [12, 13]];
 
 export default function ComplexSchedule() {
   const startTime = 8; // 8 AM
@@ -51,18 +51,41 @@ export default function ComplexSchedule() {
 
     const slotHeight = 15; // Height of each slot in pixels
 
+    const handleTouchMove = (e: any) => {
+      const slotIndex = Math.floor(e.nativeEvent.locationY / slotHeight);
+      // Verify that the slotIndex is within bounds
+      if (slotIndex >= 0 && slotIndex < slots.length) {
+        const newSlots = [...slots];
+
+        if (exampleSchedule[dayIndex] === null) {
+          exampleSchedule[dayIndex] = [slotIndex, slotIndex]; // Initialize the schedule for this day
+          newSlots[slotIndex].filled = true; // Fill the touched slot
+        } else {
+          // the following two conditions handle expanding the schedule
+          if (slotIndex > exampleSchedule[dayIndex]![1]) {
+            for (let i = exampleSchedule[dayIndex]![0]; i <= slotIndex; i++) {
+              newSlots[i].filled = true;
+            }
+            exampleSchedule[dayIndex]![1] = slotIndex; // Update the end time of the schedule
+          } 
+          else if (slotIndex < exampleSchedule[dayIndex]![0]) {
+            for (let i = slotIndex; i < exampleSchedule[dayIndex]![1]; i++) {
+              newSlots[i].filled = true;
+            }
+            exampleSchedule[dayIndex]![0] = slotIndex; // Update the start time of the schedule
+          }
+        }
+
+        setSlots(newSlots);
+      }
+    };
+
     grid.push(
       <Pressable 
         key={`day-${dayIndex}`} 
         style={styles.gridCol}
-        onTouchMove={(e) => {
-          const slotIndex = Math.floor(e.nativeEvent.locationY / slotHeight);
-          if (slotIndex >= 0 && slotIndex < slots.length) {
-            const newSlots = [...slots];
-            newSlots[slotIndex] = { ...newSlots[slotIndex], filled: true };
-            setSlots(newSlots);
-          }
-        }}
+        onTouchMove={handleTouchMove}
+        onTouchStart={handleTouchMove}
       >
         <FlatList
           data={slots}
