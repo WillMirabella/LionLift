@@ -1,5 +1,5 @@
 import { router } from "expo-router/build/global-state/router";
-import { Fragment, useState } from "react";
+import { Fragment } from "react";
 import {
   Platform,
   StyleSheet,
@@ -8,17 +8,12 @@ import {
   View,
 } from "react-native";
 import { colors } from "../constants/colors";
-import CustomTextInput from "../components/custom-text-input";
 import BigButton from "../components/buttons/big-button";
 import { KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Stepper from "../components/stepper";
-import BackButton from "../components/buttons/back-button";
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 function handleContinue(){
-    router.replace({pathname: '/(app)/browse'});
+  router.replace({pathname: '/(app)/browse'});
 }
 export default function Welcome() {
   return (

@@ -1,7 +1,6 @@
-import { router } from "expo-router";
-import { useState, Fragment, useRef, ComponentRef } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useState, Fragment, useRef, ComponentRef, useEffect } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
@@ -20,13 +19,38 @@ import Stepper from "../components/stepper";
 type TextInputInstance = ComponentRef<typeof TextInput>;
 
 export default function CreateProfileScreen() {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [major, setMajor] = useState("");
-  const [graduationYear, setGraduationYear] = useState("");
+  const params = useLocalSearchParams<{
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    major?: string;
+    graduationYear?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    schedule?: string;
+    driver?: string;
+    carMake?: string;
+    carModel?: string;
+    carYear?: string;
+    carColor?: string;
+  }>();
+
+  const [firstName, setFirstName] = useState(params.firstName ?? "");
+  const [lastName, setLastName] = useState(params.lastName ?? "");
+  const [major, setMajor] = useState(params.major ?? "");
+  const [graduationYear, setGraduationYear] = useState(params.graduationYear ?? "");
+
+  useEffect(() => {
+    if (params.firstName !== undefined) setFirstName(params.firstName);
+    if (params.lastName !== undefined) setLastName(params.lastName);
+    if (params.major !== undefined) setMajor(params.major);
+    if (params.graduationYear !== undefined) setGraduationYear(params.graduationYear);
+  }, [params.firstName, params.lastName, params.major, params.graduationYear]);
 
   const inputs = useRef<Array<TextInputInstance | null>>([]);
-
+  const [errorText, setErrorText] = useState("");
   
   function handleNext() {
     if (
@@ -35,22 +59,23 @@ export default function CreateProfileScreen() {
       !major.trim() ||
       !graduationYear.trim()
     ) {
-      Alert.alert("Missing details", "Please complete every field to continue.");
+      setErrorText("Enter all information to continue");
       return;
     }
 
     if (!/^\d{4}$/.test(graduationYear.trim())) {
-      Alert.alert("Graduation year", "Enter a four-digit year, such as 2027.");
+      setErrorText("Enter a four-digit gradutation year");
       return;
     }
 
-    router.push({
+    router.navigate({
       pathname: "/create-address",
       params: {
+        ...params,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         major: major.trim(),
-        graduationYear: graduationYear.trim()
+        graduationYear: graduationYear.trim(),
       },
     });
   }
@@ -66,7 +91,7 @@ export default function CreateProfileScreen() {
                 step={4}
                 steps={7}
             />
-            <Text style={styles.heading}>Enter Information</Text>
+            <Text style={styles.heading}>Enter User Information</Text>
 
             <View style={styles.fields}>
               <View style={{ flexDirection: "row", gap: 12  }}>
@@ -119,7 +144,9 @@ export default function CreateProfileScreen() {
                   />
                 </View>
               </View>
-
+              {errorText.length > 0 && (
+                <Text style={styles.errorText}>{errorText}</Text>
+              )}
               <BigButton text="Next" onPress={handleNext} />
             </View>
           </View>
@@ -151,5 +178,10 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "bold",
     marginTop: 24,
-  }
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
+    fontWeight: "bold"
+  },
 });

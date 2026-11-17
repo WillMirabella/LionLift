@@ -21,7 +21,6 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL;
 export default function SetPasswordScreen() {
   const { email } = useLocalSearchParams<{ email: string }>();
   const [password, setPassword] = useState("");
-  const [,setEmail] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorText, setErrorText] = useState("");
 
@@ -41,7 +40,8 @@ export default function SetPasswordScreen() {
       }
       else{
         router.replace({
-          pathname: '/create-profile'
+          pathname: '/create-profile',
+          params: {email}
         });
       }
     }

@@ -1,37 +1,59 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useState, useRef } from "react";
-import {Alert,KeyboardAvoidingView,Pressable,Platform, TextInputInstance, StatusBar, StyleSheet,Text, View, } from "react-native";
+import { useState, useRef, useEffect } from "react";
+import {KeyboardAvoidingView,Platform, TextInputInstance, StatusBar, StyleSheet,Text, View, } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BigButton from "../components/buttons/big-button";
 import { colors } from "../constants/colors";
 import Stepper from "../components/stepper";
 import CustomTextInput from "../components/custom-text-input";
+import BackButton from "../components/buttons/back-button";
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function CreateCarScreen() {
   const params = useLocalSearchParams<{
+    email: string;
     firstName: string;
     lastName: string;
     major: string;
     graduationYear: string;
-    bio: string;
     street: string;
     city: string;
     state: string;
     zipCode: string;
     schedule: string;
+    driver?: string;
+    carMake?: string;
+    carModel?: string;
+    carYear?: string;
+    carColor?: string;
   }>();
-
-  const [car, setCar] = useState({
-    make: "",
-    model: "",
-    year: "",
-    color: "",
-  }); 
   
-  const inputs = useRef<Array<TextInputInstance | null>>([]);
+  const [car, setCar] = useState({
+    make: params.carMake ?? "",
+    model: params.carModel ?? "",
+    year: params.carYear ?? "",
+    color: params.carColor ?? "",
+  });
 
-  const [driver, setDriver] = useState(false);
+  const [driver, setDriver] = useState(params.driver === "true");
   const [confirmed, setConfirm] = useState(false);
+
+  const inputs = useRef<Array<TextInputInstance | null>>([]);
+  const [errorText, setErrorText] = useState("");
+
+  useEffect(() => {
+    setCar({
+      make: params.carMake ?? "",
+      model: params.carModel ?? "",
+      year: params.carYear ?? "",
+      color: params.carColor ?? "",
+    });
+    if (params.driver !== undefined) {
+      setDriver(params.driver === "true");
+    }
+  }, [params.carMake, params.carModel, params.carYear, params.carColor, params.driver]);
+
 
   function updateCar(field: keyof typeof car, value: string) {
     setCar((current) => ({ ...current, [field]: value }));
@@ -41,7 +63,14 @@ export default function CreateCarScreen() {
     setConfirm(previousState => !previousState);
   }
 
-  function handleFinish() {
+  function handleYes(){
+    setDriver(true);
+  }
+  function handleNo(){
+    setDriver(false);
+  }
+
+  const handleFinish = async () => {
     if(driver){
       if (
         !car.make.trim() ||
@@ -49,7 +78,7 @@ export default function CreateCarScreen() {
         !car.year.trim() ||
         !car.color.trim()
       ) {
-        Alert.alert("Missing details", "Please complete all car fields.");
+        setErrorText("Enter all information to continue");
         return;
       }
 
@@ -60,36 +89,56 @@ export default function CreateCarScreen() {
         modelYear < 1998 ||
         modelYear > new Date().getFullYear() + 1
       ) {
-        Alert.alert("Model year", "Enter a valid four-digit model year.");
+        setErrorText("Enter a valid four-digit model year");
         return;
       }
 
       if (!confirmed) {
-        Alert.alert(
-          "Driver confirmation",
-          "Please confirm your license, insurance, and registration are up to date."
-        );
+        setErrorText("Confirm above to continue");
         return;
       }
     }
 
-    router.replace({
-      pathname: "/welcome",
+    const response = await fetch(`${API_URL}/api/users/update-user`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json',},
+      body: JSON.stringify({ email: params.email, first_name:params.firstName, last_name:params.lastName, major:params.major, graduation_year:params.graduationYear,
+                              street:params.street, city:params.city, state:params.state, zip_code:params.zipCode, schedule:params.schedule, 
+                              driver:params.driver, car_make:params.carMake, car_model:params.carModel, car_year:params.carYear, car_color:params.carColor,
+      }),
+    });
+    const result = await response.json();
+
+    if (result['error']!=null){
+      console.log(result['error']);
+      setErrorText(result['error']);
+    }
+    else{
+      router.navigate({
+        pathname: "/welcome",
+        params: {
+          ...params,
+          driver: String(driver),
+          carMake: car.make.trim(),
+          carModel: car.model.trim(),
+          carYear: car.year.trim(),
+          carColor: car.color.trim(),
+        },
+      });
+    }
+  }
+  function goBack(){
+    router.navigate({
+      pathname: '/create-schedule',
       params: {
         ...params,
+        driver: String(driver),
         carMake: car.make.trim(),
         carModel: car.model.trim(),
         carYear: car.year.trim(),
         carColor: car.color.trim(),
-        documentsConfirmed: "true",
       },
     });
-  }
-  function handleYes(){
-    setDriver(true);
-  }
-  function handleNo(){
-    setDriver(false);
   }
 
   return (
@@ -103,6 +152,9 @@ export default function CreateCarScreen() {
           style={styles.keyboardContainer}
         >
           <View style={styles.sheet}>
+            <BackButton
+              onPress={goBack}
+            />
             <Stepper
                 step={7}
                 steps={7}
@@ -198,6 +250,9 @@ export default function CreateCarScreen() {
 
                 </View>
               )}
+              {errorText.length > 0 && (
+                <Text style={styles.errorText}>{errorText}</Text>
+              )}
               <BigButton text="Next" onPress={handleFinish} />
           </View>
         </KeyboardAvoidingView>
@@ -244,18 +299,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginVertical: 12,
   },
-  checkbox: {
-    width: 26,
-    height: 26,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    borderRadius: 5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  checkmark: {
-    color: colors.primary,
-    fontSize: 18,
-    fontWeight: "bold",
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
+    fontWeight: "bold"
   },
 });

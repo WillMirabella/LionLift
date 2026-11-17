@@ -1,7 +1,6 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { useState, useRef, Fragment } from "react";
+import { useState, useRef, Fragment, useEffect } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   StatusBar,
@@ -16,22 +15,41 @@ import BigButton from "../components/buttons/big-button";
 import CustomTextInput from "../components/custom-text-input";
 import { colors } from "../constants/colors";
 import Stepper from "../components/stepper";
+import BackButton from "../components/buttons/back-button";
 
 export default function CreateAddressScreen() {
   const params = useLocalSearchParams<{
+    email: string;
     firstName: string;
     lastName: string;
     major: string;
     graduationYear: string;
-    bio: string;
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    schedule?: string;
+    driver?: string;
+    carMake?: string;
+    carModel?: string;
+    carYear?: string;
+    carColor?: string;
   }>();
 
-  const [street, setStreet] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [zipCode, setZipCode] = useState("");
+  const [street, setStreet] = useState(params.street ?? "");
+  const [city, setCity] = useState(params.city ?? "");
+  const [state, setState] = useState(params.state ?? "");
+  const [zipCode, setZipCode] = useState(params.zipCode ?? "");
+
+  useEffect(() => {
+    if (params.street !== undefined) setStreet(params.street);
+    if (params.city !== undefined) setCity(params.city);
+    if (params.state !== undefined) setState(params.state);
+    if (params.zipCode !== undefined) setZipCode(params.zipCode);
+  }, [params.street, params.city, params.state, params.zipCode]);
 
   const inputs = useRef<Array<TextInputInstance | null>>([]);
+  const [errorText, setErrorText] = useState("");
 
   function handleNext() {
     if (
@@ -40,26 +58,32 @@ export default function CreateAddressScreen() {
       !state.trim() ||
       !zipCode.trim()
     ) {
-      Alert.alert(
-        "Missing details",
-        "Please enter your street, city, state, and ZIP code to continue."
-      );
+      setErrorText("Enter all information to continue");
       return;
     }
 
     if (!/^\d{5}$/.test(zipCode.trim())) {
-      Alert.alert("ZIP code", "Enter a valid five-digit ZIP code.");
+      setErrorText("Enter a valid five-digit ZIP Code");
       return;
     }
 
-    router.push({
+    router.navigate({
       pathname: "/create-schedule",
       params: {
-        firstName: params.firstName,
-        lastName: params.lastName,
-        major: params.major,
-        graduationYear: params.graduationYear,
-        bio: params.bio,
+        ...params,
+        street: street.trim(),
+        city: city.trim(),
+        state: state.trim(),
+        zipCode: zipCode.trim(),
+      },
+    });
+  }
+
+  function goBack(){
+    router.navigate({
+      pathname: "/create-profile",
+      params: {
+        ...params,
         street: street.trim(),
         city: city.trim(),
         state: state.trim(),
@@ -75,19 +99,22 @@ export default function CreateAddressScreen() {
       <View style={styles.container}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}  style={{ flex: 1 }}>
           <View style={styles.sheet}>
+            <BackButton
+              onPress={goBack}
+            />
             <Stepper
                 step={5}
                 steps={7}
             />
-            <Text style={styles.heading}>Add your Address</Text>
+            <Text style={styles.heading}>Enter Address</Text>
 
             <View style={styles.fields}>
               <View style={{ flexDirection: "row", gap: 12  }}>
                 <View style={{ flex: 1 }}>
                   <CustomTextInput
                     ref={(el) => { inputs.current[0] = el; }}
-                    label="Street address"
-                    placeholder="Street address"
+                    label="Street Address"
+                    placeholder="1600 Woodland Rd"
                     value={street}
                     onChangeText={setStreet}
                     returnKeyType="next"
@@ -98,7 +125,7 @@ export default function CreateAddressScreen() {
                   <CustomTextInput
                     ref={(el) => { inputs.current[1] = el; }}
                     label="City"
-                    placeholder="City"
+                    placeholder="Abington"
                     value={city}
                     onChangeText={setCity}
                     returnKeyType="next"
@@ -111,7 +138,7 @@ export default function CreateAddressScreen() {
                   <CustomTextInput
                     ref={(el) => { inputs.current[2] = el; }}
                     label="State"
-                    placeholder="State"
+                    placeholder="PA"
                     value={state}
                     onChangeText={setState}
                     returnKeyType="next"
@@ -121,7 +148,7 @@ export default function CreateAddressScreen() {
                 <View style={{ flex: 1 }}>
                   <CustomTextInput
                     ref={(el) => { inputs.current[3] = el; }}
-                    label="ZIP code"
+                    label="ZIP Code"
                     placeholder="19001"
                     value={zipCode}
                     onChangeText={setZipCode}
@@ -131,6 +158,9 @@ export default function CreateAddressScreen() {
                   />
                 </View>
               </View>
+              {errorText.length > 0 && (
+                <Text style={styles.errorText}>{errorText}</Text>
+              )}
               <BigButton text="Next" onPress={handleNext} />
             </View>
           </View>
@@ -162,5 +192,10 @@ const styles = StyleSheet.create({
   },
   fields: {
     flex: 1,
-  }
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 14,
+    fontWeight: "bold"
+  },
 });
