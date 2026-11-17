@@ -3,7 +3,7 @@ from schedule_similarity import schedule_similarity
 import db
 
 class User:
-    def __init__(self, email, password, first_name=None, last_name=None, phone=None, gender=None, description=None, grad_year=None, major=None, schedule=None):
+    def __init__(self, email, password, first_name=None, last_name=None, phone=None, gender=None, description=None, grad_year=None, major=None, street=None, city=None, state=None, zip=None, latitude=None, longitude=None, schedule=None, preferred_payment=None):
         self.email = email
         self.password = password
         self.first_name = first_name
@@ -15,7 +15,12 @@ class User:
         self.major = major
         if(schedule==None): self.schedule = [None] * 5 # List of tuples (start_time, end_time) for each weekday (0=Monday, 4=Friday)
         else: self.schedule=schedule
-        self.address = None
+        self.street = street
+        self.city = city
+        self.state = state
+        self.zip = zip
+        self.latitude = latitude
+        self.longitude = longitude
         self.preferred_payment = None
         self.car_id = None
 
@@ -31,7 +36,8 @@ class User:
         schedule_str = "\n" if result else str(None)
         schedule_str += "\n".join(result)
 
-        return ("\nfirst_name: " + self.first_name +
+        return ("id: " + str(self.id) +
+                "\nfirst_name: " + self.first_name +
                 "\nlast_name: " + self.last_name +
                 "\nphone: " + str(self.phone) +
                 "\nemail: " + self.email +
@@ -40,15 +46,18 @@ class User:
                 "\ndescription: " + self.description +
                 "\ngrad_year: " + str(self.grad_year) +
                 "\nmajor: " + self.major +
-                "\naddress: " + str(self.address) +
+                "\nstreet: " + str(self.street) +
+                "\ncity: " + str(self.city) +
+                "\nstate: " + str(self.state) +
+                "\nzip: " + str(self.zip) +
+                "\nlatitude: " + str(self.latitude) +
+                "\nlongitude: " + str(self.longitude) +
                 "\npreferred_payment: " + str(self.preferred_payment) +
                 "\nschedule: " + schedule_str +
                 "\ncar_id: " + str(self.car_id))
 
-
     # Promotes a user to a driver by filling in extra fields and links a user to a specified car
-    def make_driver(self, address, preferred_payment,car_id):
-        self.address = address
+    def make_driver(self, preferred_payment, car_id):
         self.preferred_payment = preferred_payment
         self.car_id = car_id
 
@@ -73,8 +82,8 @@ class User:
     @classmethod
     def from_db(cls, id):
         row = db.get_user_by_id(id)
-        new_user = User(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9])
-        if(car_id!=None): new_user.make_driver(row[10], row[11], row[12], row[13])
+        new_user = User(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9], row[10], row[11], row[12], row[13], row[14], row[15], row[16])
+        if(car_id!=None): new_user.make_driver(row[17], row[18])
         return new_user
 
     # Adds a newly created user to the db and returns its id

@@ -18,7 +18,7 @@ import BackButton from "../components/buttons/back-button";
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 function handleContinue(){
-    router.replace({pathname: '/(app)/find-drivers'});
+    router.replace({pathname: '/(app)/browse'});
 }
 export default function Welcome() {
   return (
