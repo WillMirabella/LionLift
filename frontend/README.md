@@ -77,3 +77,25 @@ Switch to another tab and back, and confirm the control belongs only to Find Dri
   the tab bar reaches the bottom safe area without an extra blank strip.
 - Open `/`, `/sign-in`, `/find-drivers`, `/map`, and `/profile` in the browser to check routes.
 - For browser preview, run `npm run web`.
+
+
+### Filtering and sorting menu — issue #62 (UI preview)
+
+Browse's Display options menu now includes Sort and Filter sections. Sort choices
+are default order, first name (A–Z or Z–A), and graduation year (earliest or latest
+first). Filters include everyone/drivers/riders and an optional four-digit
+graduation year.
+
+Apply saves these choices for the current Browse screen session and closes the
+menu. Dismissing without Apply discards edits when the menu is reopened. Reset
+clears saved and draft sorting/filtering choices without changing the card view.
+Compact/Expanded continues to apply immediately, closing the menu as before.
+
+This is a UI preview: the cards still show sample data. There are no API requests
+or changes to UserCard. Connecting the selections to the users API from PR #59
+and rendering returned user data are still required before #62 is complete.
+
+Manual checks: select options and Apply, reopen to confirm selections, dismiss
+unsaved edits, Reset, enter an incomplete year (Apply should be disabled), clear
+the year, and switch Compact/Expanded. On a small screen, scroll to reach every
+option and verify Apply/Reset remain accessible.
