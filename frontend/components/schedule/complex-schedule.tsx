@@ -1,7 +1,9 @@
-import { View, StyleSheet, Text, FlatList } from "react-native";
+import { View, StyleSheet, Text, FlatList, TouchableWithoutFeedback, Pressable } from "react-native";
 import { colors } from "../../constants/colors";
+import { usePanGesture, GestureDetector, GestureHandlerRootView, Gesture, Touchable } from 'react-native-gesture-handler';
+import { useState } from "react";
 
-const exampleSchedule = [[12, 15], [13, 16], [9, 18], null, [12, 13]];
+var exampleSchedule = [[12, 15], [13, 16], [9, 18], null, [12, 13]];
 
 export default function ComplexSchedule() {
   const startTime = 8; // 8 AM
@@ -16,15 +18,15 @@ export default function ComplexSchedule() {
   let grid = [];
 
   // generate time slots for the flat list
-  const timeSlots = [];
+  const timeLabels = [];
   for (let hour = startTime; hour <= endTime; hour++) {
-    timeSlots.push({ id: hour, title: `${hour % 12 || 12}:00` + (hour < 12 ? " AM" : " PM") });
+    timeLabels.push({ id: hour, title: `${hour % 12 || 12}:00` + (hour < 12 ? " AM" : " PM") });
   }
 
   grid.push(
     <View key="timeColumn" style={styles.gridCol}>
       <FlatList
-        data={timeSlots}
+        data={timeLabels}
         scrollEnabled={false}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
@@ -40,24 +42,62 @@ export default function ComplexSchedule() {
   // generate grid cells for the flat list
   
   for (let dayIndex = 0; dayIndex < 5; dayIndex++) {
-    const gridCells = [];
+    const timeSlots = [];
     for (let hour = startTime; hour <= endTime; hour += 0.5) {
-      gridCells.push({ id: hour, filled: (exampleSchedule[dayIndex] && exampleSchedule[dayIndex]![0] <= hour && exampleSchedule[dayIndex]![1] > hour) });
+      timeSlots.push({ id: hour, filled: (exampleSchedule[dayIndex] && exampleSchedule[dayIndex]![0] <= hour && exampleSchedule[dayIndex]![1] > hour) });
     }
-    // create a style with bottom and right borders for the grid cells, except for the last column and last row
+
+    let [slots, setSlots] = useState(timeSlots);
+
+    const slotHeight = 15; // Height of each slot in pixels
+
+    const handleTouchMove = (e: any) => {
+      const slotIndex = Math.floor(e.nativeEvent.locationY / slotHeight);
+      // Verify that the slotIndex is within bounds
+      if (slotIndex >= 0 && slotIndex < slots.length) {
+        const newSlots = [...slots];
+
+        if (exampleSchedule[dayIndex] === null) {
+          exampleSchedule[dayIndex] = [slotIndex, slotIndex]; // Initialize the schedule for this day
+          newSlots[slotIndex].filled = true; // Fill the touched slot
+        } else {
+          // the following two conditions handle expanding the schedule
+          if (slotIndex > exampleSchedule[dayIndex]![1]) {
+            for (let i = exampleSchedule[dayIndex]![0]; i <= slotIndex; i++) {
+              newSlots[i].filled = true;
+            }
+            exampleSchedule[dayIndex]![1] = slotIndex; // Update the end time of the schedule
+          } 
+          else if (slotIndex < exampleSchedule[dayIndex]![0]) {
+            for (let i = slotIndex; i < exampleSchedule[dayIndex]![1]; i++) {
+              newSlots[i].filled = true;
+            }
+            exampleSchedule[dayIndex]![0] = slotIndex; // Update the start time of the schedule
+          }
+        }
+
+        setSlots(newSlots);
+      }
+    };
 
     grid.push(
-      <View key={`day-${dayIndex}`} style={styles.gridCol}>
+      <Pressable 
+        key={`day-${dayIndex}`} 
+        style={styles.gridCol}
+        onTouchMove={handleTouchMove}
+        onTouchStart={handleTouchMove}
+      >
         <FlatList
-          data={gridCells}
+          data={slots}
           scrollEnabled={false}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
-            <View style={item.filled ? styles.gridCellFilled : (dayIndex == 4 ? [styles.gridCellBordered, { borderRightWidth: 0 }] : styles.gridCellBordered)}/>
+            // pointerEvents="none" line is absolutely required or else the onTouch event will return the pointer event on this child view instead of the parent
+            <View pointerEvents="none" style={item.filled ? styles.gridCellFilled : (dayIndex == 4 ? [styles.gridCellBordered, { borderRightWidth: 0 }] : styles.gridCellBordered)}/>
           )}
           keyExtractor={(item) => item.id.toString()}
         />
-      </View>
+      </Pressable>
     );
   }
 
