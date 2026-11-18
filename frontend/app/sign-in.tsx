@@ -1,7 +1,6 @@
 import { router } from "expo-router/build/global-state/router";
 import { Fragment, useState } from "react";
 import {
-  Alert,
   Platform,
   StatusBar,
   StyleSheet,
@@ -92,10 +91,10 @@ export default function SignInScreen() {
               <SmallButton
                 text="Forgot password?"
                 onPress={() =>
-                  Alert.alert(
-                    "Forgot password",
-                    "Password recovery will be added later.",
-                  )
+                  router.replace({
+                    pathname: "/verify-email",
+                    params: { mode: "reset" },
+                  })
                 }
               ></SmallButton>
               {errorText.length > 0 && (

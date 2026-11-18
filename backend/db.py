@@ -70,6 +70,14 @@ def create_relations():
             last_sent_at TIMESTAMPTZ,
             verified BOOLEAN NOT NULL DEFAULT FALSE
         );
+        CREATE TABLE IF NOT EXISTS password_resets (
+            email VARCHAR(254) PRIMARY KEY,
+            code_hash CHAR(64),
+            expires_at TIMESTAMPTZ,
+            attempts INTEGER NOT NULL DEFAULT 0,
+            last_sent_at TIMESTAMPTZ,
+            token_id VARCHAR(64)
+        );
     """
     conn = get_connection()
     curr = conn.cursor()
@@ -331,3 +339,85 @@ def mark_email_verified(email):
 def is_email_verified(email):
     row = get_verification(email)
     return row is not None and row[4]
+
+
+# Saves a new password reset code for an email, replacing any older code or reset token
+# The actual code is never stored, only its hash
+def save_reset_code(email, code_hash, expires_at):
+    query = """
+        INSERT INTO password_resets (email, code_hash, expires_at, attempts, last_sent_at, token_id)
+        VALUES (%s, %s, %s, 0, NOW(), NULL)
+        ON CONFLICT (email) DO UPDATE
+        SET code_hash = EXCLUDED.code_hash, expires_at = EXCLUDED.expires_at, attempts = 0,
+            last_sent_at = NOW(), token_id = NULL;
+    """
+    conn = get_connection()
+    curr = conn.cursor()
+    curr.execute(query,(email, code_hash, expires_at))
+    conn.commit()
+    conn.close()
+
+# Returns (code_hash, expires_at, attempts, last_sent_at, token_id) for an email, or None
+def get_reset(email):
+    query = """
+            SELECT code_hash, expires_at, attempts, last_sent_at, token_id
+            FROM password_resets
+            WHERE email = %s;
+        """
+    conn = get_connection()
+    curr = conn.cursor()
+    curr.execute(query,(email,))
+    row = curr.fetchone()
+    conn.close()
+
+    return row
+
+# Counts a wrong guess against an email's current reset code
+def increment_reset_attempts(email):
+    query = """
+        UPDATE password_resets
+        SET attempts = attempts + 1
+        WHERE email = %s;
+    """
+    conn = get_connection()
+    curr = conn.cursor()
+    curr.execute(query,(email,))
+    conn.commit()
+    conn.close()
+
+# Clears the reset code once it's used, and remembers the id of the reset token handed out
+# so that token can only be used once
+def mark_reset_code_used(email, token_id):
+    query = """
+        UPDATE password_resets
+        SET code_hash = NULL, expires_at = NULL, token_id = %s
+        WHERE email = %s;
+    """
+    conn = get_connection()
+    curr = conn.cursor()
+    curr.execute(query,(token_id, email))
+    conn.commit()
+    conn.close()
+
+# Sets a user's new password and uses up the reset token in one transaction
+# Only succeeds if token_id is still the current reset token for that email
+# Returns True if the password was changed
+def reset_password(email, token_id, password_hash):
+    conn = get_connection()
+    curr = conn.cursor()
+    curr.execute(
+        "UPDATE password_resets SET token_id = NULL WHERE email = %s AND token_id = %s;",
+        (email, token_id),
+    )
+    if curr.rowcount != 1:
+        conn.rollback()
+        conn.close()
+        return False
+    curr.execute("UPDATE users SET password = %s WHERE email = %s;", (password_hash, email))
+    changed = curr.rowcount == 1
+    if changed:
+        conn.commit()
+    else:
+        conn.rollback()
+    conn.close()
+    return changed
