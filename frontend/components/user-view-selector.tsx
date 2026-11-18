@@ -5,15 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../constants/colors';
 import { shadowStyles } from '../constants/shadow';
 
-export type BrowseOptions = {
-  sort: '' | 'first_name' | '-first_name' | 'grad_year' | '-grad_year';
-  role: '' | 'driver' | 'rider';
-  graduationYear: string;
-};
-
-export const defaultBrowseOptions: BrowseOptions = {
-  sort: '', role: '', graduationYear: '',
-};
+import type { BrowseOptions } from '../services/browse-options';
+import { defaultBrowseOptions } from '../services/browse-options';
 
 const sortOptions: { value: BrowseOptions['sort']; label: string }[] = [
   { value: '', label: 'Default order' },
@@ -130,7 +123,7 @@ export default function UserViewSelector({ expanded, onChange, options, onApply 
               onChangeText={graduationYear => setDraft({ ...draft, graduationYear })}
               style={styles.yearInput} />
             {!yearIsValid && <Text accessibilityRole="alert" style={styles.note}>Enter a four-digit year or leave it blank.</Text>}
-            <Text style={styles.note}>Preview: sorting and filtering do not change the sample cards yet.</Text>
+            <Text style={styles.note}>Apply updates the user list.</Text>
             </ScrollView>
             <View style={styles.actions}>
               <Pressable accessibilityRole="button" onPress={resetOptions} style={styles.action}>

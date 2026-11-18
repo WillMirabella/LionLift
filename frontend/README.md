@@ -79,23 +79,37 @@ Switch to another tab and back, and confirm the control belongs only to Find Dri
 - For browser preview, run `npm run web`.
 
 
-### Filtering and sorting menu — issue #62 (UI preview)
+### Filtering and sorting — issue #62 (integration in progress)
 
-Browse's Display options menu now includes Sort and Filter sections. Sort choices
-are default order, first name (A–Z or Z–A), and graduation year (earliest or latest
-first). Filters include everyone/drivers/riders and an optional four-digit
-graduation year.
+Browse requests `/api/users/` using `EXPO_PUBLIC_API_URL`, the same backend base
+URL setting used by the authentication screens. The endpoint is provided by
+Ian's PR #59 and is not yet available on main. Set the URL in your local Expo
+`.env` file and restart Expo. On a physical phone, use a server address reachable
+from the phone, not localhost. Browser testing also needs backend CORS support.
 
-Apply saves these choices for the current Browse screen session and closes the
-menu. Dismissing without Apply discards edits when the menu is reopened. Reset
-clears saved and draft sorting/filtering choices without changing the card view.
-Compact/Expanded continues to apply immediately, closing the menu as before.
+Sort choices are default order, first name (A–Z or Z–A), and graduation year
+(earliest or latest first). Filters include everyone/drivers/riders and an
+optional four-digit graduation year. Apply saves selections and requests users;
+Reset clears sorting and filtering and requests the default list. Dismissing
+without Apply discards edits when reopened. Older requests are cancelled when
+new options are applied or Browse unmounts.
 
-This is a UI preview: the cards still show sample data. There are no API requests
-or changes to UserCard. Connecting the selections to the users API from PR #59
-and rendering returned user data are still required before #62 is complete.
+Browse shows loading, error/retry, and empty-result states. Successful responses
+appear in a temporary results list: Compact shows names; Expanded also shows
+major, graduation year, and driver/rider status. This list does not claim to
+provide distances, match percentages, or schedules. Alex's UserCard is unchanged;
+connecting real data to that component is still required before #62 is complete.
+The private account model is not used for the public browse response.
 
-Manual checks: select options and Apply, reopen to confirm selections, dismiss
-unsaved edits, Reset, enter an incomplete year (Apply should be disabled), clear
-the year, and switch Compact/Expanded. On a small screen, scroll to reach every
-option and verify Apply/Reset remain accessible.
+Request tests (Node 22.6+):
+
+```bash
+node --experimental-strip-types --test tests/browse-users.test.mjs
+```
+
+Manual checks: Apply combined filters, reopen to confirm selections, dismiss
+unsaved edits, Reset, reject an incomplete year, switch views, retry a failed
+request, and verify no matching users. Change filters quickly to check that an
+older response does not overwrite the newer results. Verify scrolling and menu
+controls on a small screen. Full device and real-database integration testing
+remain pending.
