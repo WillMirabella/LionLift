@@ -1,4 +1,4 @@
-import { View, StyleSheet, Text } from "react-native";
+import { View, StyleSheet, Text, Modal } from "react-native";
 import { colors } from "../../constants/colors";
 import { shadowStyles } from "../../constants/shadow";
 import BigButton from "../../components/buttons/big-button";
@@ -10,27 +10,29 @@ import {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Carousel } from "react-native-reanimated-carousel";
 import ComplexSchedule from "../../components/schedule/complex-schedule";
+import { useState } from "react";
+import RevealableLabeledText from "../../components/revealable-text";
 
 export default function ProfileScreen() {
+  const [modalVisible, setModalVisible] = useState(false);
 
   const cards = [
     <View style={styles.card}>
-      <View style={{ flex: 1 }}>
         <Text style={styles.heading}>About</Text>
         <Text style={styles.subheading}>
           Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
           eiusmod tempor incididunt ut labore et dolore magna aliqua. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
           eiusmod tempor incididunt ut labore et dolore magna aliqua. 
         </Text>
-      </View>
-      <Divider />
-      <View style={{ flex: 1 }}>
+        <Divider />
         <LabeledText label="Age" value="20" />
         <LabeledText label="Gender" value="Male" />
         <LabeledText label="Major" value="Computer Science" />
         <LabeledText label="Graduation Year" value="2028" />
         <LabeledText label="Preferred Payment" value="Venmo" />
-      </View>
+        <Divider />
+        <RevealableLabeledText label="Email" value="placeholder@example.com" />
+        <RevealableLabeledText label="Phone Number" value="(987) 654-3210" />
     </View>,
 
     <View style={styles.card}>
@@ -62,9 +64,6 @@ export default function ProfileScreen() {
               </View>
           )}
         />
-        <View style={{ marginHorizontal: 24, marginBottom: 16 }}>
-          <BigButton text="Contact" onPress={() => {}} />
-        </View>
       </SafeAreaView>
     </GestureHandlerRootView>
   );
@@ -94,8 +93,6 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.background,
-    borderWidth: 0,
-    borderColor: colors.secondary,
     padding: 16,
     margin: 24,
     borderRadius: 24,
