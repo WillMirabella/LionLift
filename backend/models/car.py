@@ -1,12 +1,12 @@
 import db
 
 class Car:
-    def __init__(self, id, make, model, color, year, capacity):
+    def __init__(self, id, make, model, year, color):
         self.make = make
         self.model = model
         self.color = color
         self.year = year
-        self.capacity = capacity
+        self.capacity = 4
 
         if(id == None): self.id = self.to_db() # Primary Key
         else: self.id = id
