@@ -72,5 +72,15 @@ jobs:
       - name: Install Python packages
         run: pip install -r requirements-dev.txt
 
+      # Fails if the tests miss more than 5% of the backend's lines and branches
       - name: Run tests
-        run: python -m pytest
+        run: python -m pytest --cov --cov-report=term-missing --cov-report=markdown:coverage.md --cov-fail-under=95
+
+      # Shows the coverage table on the run's summary page
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f coverage.md ]; then
+            echo "### Coverage (Python ${{ matrix.python-version }})" >> "$GITHUB_STEP_SUMMARY"
+            cat coverage.md >> "$GITHUB_STEP_SUMMARY"
+          fi

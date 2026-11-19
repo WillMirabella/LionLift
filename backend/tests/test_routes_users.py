@@ -2,9 +2,9 @@ import pytest
 
 import db
 
-# Tests for routes/users.py, GET /api/users/ (issues #22, #23).
-# Skipped until that branch is merged.
-pytest.importorskip("routes.users")
+# Tests for GET /api/users/, browsing with filters and sorting (issues #22, #23).
+# Skipped until that branch, which adds user_search.py, is merged.
+pytest.importorskip("user_search")
 
 URL = "/api/users/"
 
@@ -88,9 +88,8 @@ def test_schema_change_is_500(client, monkeypatch, sample_rows):
 
 # Against the real test database
 @pytest.mark.db
-def test_reads_from_database(client):
-    from models.user import User
+def test_reads_from_database(client, save_user):
     for email, year in (("a@psu.edu", 2027), ("b@psu.edu", 2028)):
-        User(None, "Test", "User", "555", email, "female", "hi", year, "Biology", [(9, 17)] * 5)
+        save_user(email, grad_year=year, schedule=[(9, 17)] * 5)
     data = client.get(URL + "?sort=-grad_year").get_json()
     assert [user["grad_year"] for user in data] == [2028, 2027]

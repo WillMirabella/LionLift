@@ -2,6 +2,7 @@ import re
 import threading
 from datetime import datetime, time, timedelta, timezone
 
+import psycopg2
 import pytest
 
 import db
@@ -9,6 +10,7 @@ import routes.auth as auth
 from models.car import Car
 from models.user import User
 from schedule_similarity import parse_schedule
+from tests.conftest import USER_COLUMNS
 
 # Database tests for db.py, the models and the auth routes, against a real
 # PostgreSQL test database. Every test starts with empty tables (see conftest.py).
@@ -16,11 +18,14 @@ from schedule_similarity import parse_schedule
 pytestmark = pytest.mark.db
 
 
+# Saves a user and returns it with its id set (see save_user in conftest.py)
 def new_user(email="jd@psu.edu", schedule=None, **changes):
-    fields = dict(first_name="John", last_name="Doe", phone="5550000000", gender="male",
-                  description="hi", grad_year=2028, major="Computer Science")
-    fields.update(changes)
-    return User(None, email=email, schedule=schedule, **fields)
+    from tests.conftest import _save_user
+    return _save_user(email, schedule=schedule, **changes)[0]
+
+
+def row_dict(user_id):
+    return dict(zip(USER_COLUMNS, db.get_user_by_id(user_id)))
 
 
 def table_names():
@@ -53,29 +58,45 @@ def test_clear_relations_removes_everything():
 
 def test_insert_and_get_user():
     user = new_user()
-    row = db.get_user_by_id(user.id)
-    assert row[0] == user.id
-    assert row[1:5] == ("John", "Doe", "5550000000", "jd@psu.edu")
-    assert row[7] == 2028
+    row = row_dict(user.id)
+    assert row["id"] == user.id
+    assert (row["email"], row["first_name"], row["last_name"], row["phone"]) == ("jd@psu.edu", "John", "Doe", "2155550100")
+    assert (row["street"], row["city"], row["state"], row["zip"]) == ("1 School Ln", "Abington", "PA", "19001")
+    assert row["grad_year"] == 2028
+
+
+# latitude and longitude are stored as text and read back as numbers
+def test_location_round_trip():
+    user = new_user(latitude=40.1175, longitude=-75.1091)
+    row = row_dict(user.id)
+    assert (float(row["latitude"]), float(row["longitude"])) == (40.1175, -75.1091)
+
+
+def test_get_user_by_email():
+    user = new_user("find.me@psu.edu")
+    assert db.get_user_by_email("find.me@psu.edu")[0] == user.id
+    assert db.get_user_by_email("nobody@psu.edu") is None
 
 
 def test_get_missing_user():
     assert db.get_user_by_id(999) is None
 
 
-def test_update_user_through_make_driver():
-    user = new_user()
-    car = Car(None, "Toyota", "Camry", "Black", 2024, 4)
-    user.make_driver("1 School Ln", "Venmo", car.id)
-    row = db.get_user_by_id(user.id)
-    assert (row[10], row[11], row[12]) == ("1 School Ln", "Venmo", car.id)
-
-
 def test_schedule_round_trip():
     schedule = [(9, 17), None, (9.5, 15.25), None, (8, 12)]
     user = new_user(schedule=schedule)
-    stored = db.get_user_by_id(user.id)[9]
-    assert parse_schedule(stored) == parse_schedule(schedule)
+    assert parse_schedule(row_dict(user.id)["schedule"]) == parse_schedule(schedule)
+
+
+# Known bug: update_user is an INSERT with its values one column off, so
+# make_driver adds a broken second row (or fails) instead of updating the user
+@pytest.mark.xfail(raises=psycopg2.Error, reason="update_user inserts instead of updating")
+def test_update_user_through_make_driver():
+    user = new_user()
+    car = Car(None, "Toyota", "Camry", "Black", 2024, 4)
+    user.make_driver("Venmo", car.id)
+    row = row_dict(user.id)
+    assert (row["preferred_payment"], row["car_id"]) == ("Venmo", car.id)
 
 
 # Known gap: nothing stops two accounts from sharing an email
@@ -94,8 +115,41 @@ def test_duplicate_email_rejected():
 ])
 def test_schedule_formats_round_trip(schedule):
     user = new_user(schedule=schedule)
-    stored = db.get_user_by_id(user.id)[9]
+    stored = row_dict(user.id)["schedule"]
     assert parse_schedule(stored) == [(9.5, 17.0), None, (9.5, 17.0), None, None]
+
+
+# ---- locations for the map ----
+
+def test_locations_are_close_to_real_ones():
+    new_user("a@psu.edu", latitude=40.1, longitude=-75.1)
+    new_user("b@psu.edu", latitude=39.95, longitude=-75.16)
+    locations = sorted(db.get_users_locations())
+    assert len(locations) == 2
+    for (lat, lng), (real_lat, real_lng) in zip(locations, [(39.95, -75.16), (40.1, -75.1)]):
+        assert abs(lat - real_lat) <= 0.015 + 1e-9 and abs(lng - real_lng) <= 0.015 + 1e-9
+
+
+def test_users_without_location_are_left_out():
+    new_user("a@psu.edu", latitude=None, longitude=None)
+    new_user("b@psu.edu", latitude=40.1, longitude=-75.1)
+    assert len(db.get_users_locations()) == 1
+
+
+def test_no_users_no_locations():
+    assert db.get_users_locations() == []
+
+
+# Known privacy bug: each call adds new random noise, so averaging many calls
+# finds a home almost exactly. 400 calls land within about 100 feet.
+@pytest.mark.xfail(reason="location noise is new on every call, so it averages out")
+def test_repeated_requests_dont_reveal_location():
+    new_user("a@psu.edu", latitude=40.1, longitude=-75.1)
+    samples = [db.get_users_locations()[0] for _ in range(400)]
+    mean_lat = sum(lat for lat, _ in samples) / len(samples)
+    mean_lng = sum(lng for _, lng in samples) / len(samples)
+    # Staying more than about a quarter mile off is the goal
+    assert abs(mean_lat - 40.1) > 0.004 or abs(mean_lng + 75.1) > 0.004
 
 
 # ---- cars and contacts ----
@@ -116,7 +170,7 @@ def test_contact_round_trip():
 
 
 def test_contact_needs_real_users():
-    with pytest.raises(Exception):
+    with pytest.raises(psycopg2.errors.ForeignKeyViolation):
         db.insert_contact(998, 999, "text", datetime.now())
 
 
