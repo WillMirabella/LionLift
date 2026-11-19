@@ -70,7 +70,7 @@ def test_browse_search_5000_users_is_fast():
     users = [{
         "id": i, "first_name": f"F{i}", "last_name": f"L{rng.randint(0, 999)}", "phone": None, "email": None,
         "gender": rng.choice(["male", "female", None]), "description": None, "grad_year": rng.randint(2026, 2030),
-        "major": rng.choice(["Biology", "Nursing", "Computer Science"]), "schedule": None, "address": None,
+        "major": rng.choice(["Biology", "Nursing", "Computer Science"]), "schedule": None, "street": None, "city": None, "state": None, "zip": None,
         "preferred_payment": rng.choice(["Cash", "Venmo", None]), "car_id": rng.choice([None, 1]),
         "latitude": 40.1 + rng.uniform(-0.2, 0.2), "longitude": -75.1 + rng.uniform(-0.2, 0.2),
     } for i in range(5000)]

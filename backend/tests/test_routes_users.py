@@ -31,9 +31,21 @@ def test_hides_phone_and_email(client, users):
         assert "phone" not in user and "email" not in user
 
 
-def test_hides_address(client, users):
+# The password hash and the parts of the address that pin down a home are
+# never sent; city and state are fine to show
+def test_hides_password_and_home_address(client, users):
     for user in client.get(URL).get_json():
-        assert "address" not in user
+        assert not {"password", "street", "zip"} & set(user)
+        assert user["city"] == "Abington" and user["state"] == "PA"
+
+
+# Coordinates are stored as text, and still count for distance
+def test_text_coordinates_are_used(client, monkeypatch, make_row):
+    rows = [make_row(1, latitude="40.1175", longitude="-75.1091"), make_row(2, latitude="not a number", longitude="1")]
+    monkeypatch.setattr(db, "get_all_users", lambda: rows)
+    data = client.get(URL + "?lat=40.1175&lon=-75.1091&sort=distance").get_json()
+    assert data[0]["id"] == 1 and data[0]["distance"] < 1
+    assert data[1]["id"] == 2 and data[1]["distance"] is None
 
 
 # With no sort given, results come back by last name: adams, Doe, Jones, Lee, Smith
