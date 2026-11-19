@@ -3,15 +3,16 @@ import math
 # Filters and sorts users for the browse users screen.
 #
 # A user here is a dict with the same keys as the columns of the users
-# relation, in the order db.get_all_users returns them. A user can also have
-# "latitude" and "longitude" keys. Users without a valid location can't be
-# placed, so they are left out when filtering by distance and always sorted
-# last when sorting by distance.
+# relation, in the order db.get_all_users returns them, including "latitude"
+# and "longitude". Users without a valid location can't be placed, so they are
+# left out when filtering by distance and always sorted last when sorting by
+# distance.
 
 # Column order of the users relation, see create_relations in db.py
 USER_COLUMNS = (
-    "id", "first_name", "last_name", "phone", "email", "gender", "description",
-    "grad_year", "major", "schedule", "address", "preferred_payment", "car_id",
+    "id", "email", "password", "first_name", "last_name", "phone", "gender", "description",
+    "grad_year", "major", "schedule", "street", "city", "state", "zip", "latitude", "longitude",
+    "preferred_payment", "car_id",
 )
 
 # Mean radius of the Earth, used for distances in miles
@@ -28,7 +29,23 @@ ROLES = ("driver", "rider")
 def row_to_user(row):
     if len(row) != len(USER_COLUMNS):
         raise ValueError(f"expected {len(USER_COLUMNS)} columns, got {len(row)}")
-    return dict(zip(USER_COLUMNS, row))
+    user = dict(zip(USER_COLUMNS, row))
+
+    # The table stores coordinates as text, so they're turned into numbers.
+    # Text that isn't a number is treated as no location.
+    for key in ("latitude", "longitude"):
+        user[key] = _text_to_float(user[key])
+    return user
+
+
+# Turns stored text like "40.1175" into a float, or None if it isn't a number
+def _text_to_float(value):
+    if value is None or isinstance(value, (int, float)):
+        return value
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 # Lowercases and trims text so comparisons ignore case and extra spaces.
