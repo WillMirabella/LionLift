@@ -185,4 +185,4 @@ def test_new_users_show_up_in_browse_without_private_fields(server, outbox, save
     assert status == 200
     assert [user["last_name"] for user in users] == ["Adams", "Zimmer"]
     for user in users:
-        assert not {"phone", "email", "address"} & set(user)
+        assert not {"password", "phone", "email", "street", "zip"} & set(user)

@@ -1,8 +1,11 @@
-from datetime import datetime, timedelta, timezone
-
-from flask import Blueprint, jsonify, request
-
 import db
+from models.user import User
+
+import re
+from datetime import datetime, timedelta, timezone
+from flask import Blueprint, jsonify, request, current_app
+from flask_bcrypt import Bcrypt
+from flask_jwt_extended import JWTManager, create_access_token
 from services.email_sender import send_email
 from services.verification import (
     CODE_EXPIRY_MINUTES,
@@ -17,6 +20,8 @@ from services.verification import (
 # make a blueprint for email verification
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
+bcrypt = Bcrypt()
+jwt = JWTManager()
 
 # POST /api/auth/request-code   body: {"email": "abc123@psu.edu"}
 # emails a 6-digit code to the user (also used to resend a code)
@@ -41,12 +46,18 @@ def request_code():
             return jsonify({"error": "Please wait a minute before requesting another code"}), 429
 
     code, code_hash = make_code()
+    # send before saving, so if the email fails the old code and cooldown are left alone
+    try:
+        send_email(
+            email,
+            "Your LionLift verification code",
+            f"Your verification code is {code}. It expires in {CODE_EXPIRY_MINUTES} minutes.",
+        )
+    except Exception as e:
+        print(f"Failed to send verification email to {email}: {e}")
+        return jsonify({"error": "Couldn't send the verification email, please try again"}), 502
+
     db.save_verification_code(email, code_hash, now + timedelta(minutes=CODE_EXPIRY_MINUTES))
-    send_email(
-        email,
-        "Your LionLift verification code",
-        f"Your verification code is {code}. It expires in {CODE_EXPIRY_MINUTES} minutes.",
-    )
     return jsonify({"status": "code_sent"}), 200
 
 
@@ -79,3 +90,50 @@ def verify():
 
     db.mark_email_verified(email)
     return jsonify({"status": "verified"}), 200
+
+@auth_bp.post('/set-password')
+def set_password():
+    data = request.get_json(silent=True) or {}
+    email = data.get('email')
+    password = data.get('password')
+
+    if not email or not password:
+        return jsonify({"error": "Missing email or password"}), 400
+
+    if len(password) < 8:
+        return jsonify({"error": "Password must be at least 8 characters long"}), 400
+    
+    if not re.search(r"^(?=.*[A-Za-z])(?=.*\d)", password):
+        return jsonify({"error": "Password must contain letters and numbers"}), 400
+    
+    if not re.search(r'(?=.*[!@#$%^&*(),.?":{}|<>])', password):
+        return jsonify({"error": "Password must contain upper and lower case"}), 400
+
+    if not re.search(r'[^a-zA-Z0-9 ]', password):
+        return jsonify({"error": "Password must contain a special character ($, !, @, #)"}), 400
+
+    if db.get_user_by_email(email):
+        return jsonify({"error": "User already exists"}), 400
+
+    hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
+    db.insert_user(User(email, hashed_pw))
+
+    return jsonify({"status": "Password set successfully "}), 201
+
+@auth_bp.post('/login')
+def login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+
+    if(password is None or email is None): return jsonify({"error": "Enter an email and password"}), 400
+
+    user = db.get_user_by_email(email)
+    
+    # Check the password using Bcrypt
+    if user and bcrypt.check_password_hash(user[2], password):
+        # Generate an access token for the frontend
+        access_token = create_access_token(identity=email)
+        return jsonify({"token": access_token}), 200
+
+    return jsonify({"error": "Invalid credentials"}), 400

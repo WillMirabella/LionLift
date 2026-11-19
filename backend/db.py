@@ -1,4 +1,5 @@
 import psycopg2
+import random
 
 # This method establishes a connection with a postgres server
 # It is currently configured to connect to a server on your local machine
@@ -35,16 +36,22 @@ def create_relations():
         );
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
+            email VARCHAR(100),
+            password VARCHAR(100),
             first_name VARCHAR(100),
             last_name VARCHAR(100),
             phone VARCHAR(100),
-            email VARCHAR(100),
             gender VARCHAR(100),
             description VARCHAR(100),
             grad_year INTEGER,
             major VARCHAR(100),
             schedule VARCHAR(100),
-            address VARCHAR(100),
+            street VARCHAR(100),
+            city VARCHAR(100),
+            state VARCHAR(100),
+            zip VARCHAR(100),
+            latitude VARCHAR(100),
+            longitude VARCHAR(100),
             preferred_payment VARCHAR(100),
             car_id INTEGER REFERENCES cars(id)
         );
@@ -85,12 +92,19 @@ def clear_relations():
 # Inserts a new user into the users relation and returns the new user_id
 def insert_user(u):
     query = """
-        INSERT INTO users (first_name, last_name, phone, email, gender, description, grad_year, major, address, preferred_payment, schedule) 
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id,first_name, last_name, phone, email, gender, description, grad_year, major, address, preferred_payment, schedule;
+        INSERT INTO users (
+            email, password, first_name, last_name, phone, gender,
+            description, grad_year, major, street, city, state, zip,
+            longitude, latitude, schedule, preferred_payment, car_id
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id;
     """
-    new_user_data= (u.first_name, u.last_name, u.phone, u.email, u.gender, u.description, u.grad_year, u.major, u.address, u.preferred_payment, u.schedule)
-
+    new_user_data = (
+        u.email, u.password, u.first_name, u.last_name, u.phone, u.gender,
+        u.description, u.grad_year, u.major, u.street, u.city, u.state, u.zip,
+        u.longitude, u.latitude, u.schedule, u.preferred_payment, u.car_id
+    )
     conn = get_connection()
     curr = conn.cursor()
     curr.execute(query,new_user_data)
@@ -103,12 +117,20 @@ def insert_user(u):
 # Updates a row of the user relation
 def update_user(u):
     query = """
-        UPDATE users
-        SET first_name = %s, last_name = %s, phone = %s, email = %s, gender = %s, description = %s, grad_year = %s, major = %s, schedule = %s, address = %s, preferred_payment = %s, car_id = %s
-        WHERE id = %s;
+        INSERT INTO users (
+            email, password, first_name, last_name, phone, gender,
+            description, grad_year, major, street, city, state, zip,
+            longitude, latitude, schedule, preferred_payment, car_id
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id;
     """
-    new_user_data= (u.first_name, u.last_name, u.phone, u.email, u.gender, u.description, u.grad_year, u.major, u.schedule, u.address, u.preferred_payment, u.car_id, u.id)
-
+    new_user_data = (
+        u.first_name, u.last_name, u.phone, u.email, u.gender,
+        u.description, u.grad_year, u.major, u.street, u.city, u.state,
+        u.zip, u.longitude, u.latitude, u.schedule, u.preferred_payment,
+        u.car_id, u.id
+    )
     conn = get_connection()
     curr = conn.cursor()
     curr.execute(query,new_user_data)
@@ -129,6 +151,46 @@ def get_user_by_id(id):
     conn.close()
 
     return row
+
+# Returns the data of the row in users with the specified email
+def get_user_by_email(email):
+    query = """
+            SELECT * 
+            FROM users 
+            WHERE email =  %s;
+        """
+    conn = get_connection()
+    curr = conn.cursor()
+    curr.execute(query,(email,))
+    row = curr.fetchone()
+    conn.close()
+
+    return row
+
+
+# Returns every user's locations
+def get_users_locations():
+    query = """
+            SELECT latitude, longitude
+            FROM users 
+        """
+    conn = get_connection()
+    curr = conn.cursor()
+    curr.execute(query)
+    rows = curr.fetchall()
+    conn.close()
+
+    # Randomize location by about a mile
+    offset = 0.015
+
+    return [
+        (
+            round(float(lat) + random.uniform(-offset, offset), 5),
+            round(float(lng) + random.uniform(-offset, offset), 5),
+        )
+        for lat, lng in rows
+        if lat is not None and lng is not None
+    ]
 
 # Inserts a new car into the cars relation and returns the new id
 def insert_car(c):
