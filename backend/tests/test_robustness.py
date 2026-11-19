@@ -1,4 +1,5 @@
 import json
+import sys
 
 import pytest
 from hypothesis import HealthCheck, assume, given, settings
@@ -12,6 +13,8 @@ import routes.auth as auth
 # including wrong types, huge values and odd characters.
 
 AUTH_ROUTES = ["/api/auth/request-code", "/api/auth/verify"]
+ACCOUNT_ROUTES = ["/api/auth/set-password", "/api/auth/login"]
+ALL_ROUTES = AUTH_ROUTES + ACCOUNT_ROUTES
 
 
 # A minimal in-memory stand-in for the verification table, so these run
@@ -29,6 +32,11 @@ def memory_db(monkeypatch):
     monkeypatch.setattr(db, "increment_verification_attempts", lambda email: None)
     monkeypatch.setattr(db, "mark_email_verified", lambda email: None)
     monkeypatch.setattr(auth, "send_email", lambda to, subject, body: None)
+
+    # Users for set-password and login
+    users = {}
+    monkeypatch.setattr(db, "get_user_by_email", lambda email: users.get(email) if isinstance(email, str) else None)
+    monkeypatch.setattr(db, "insert_user", lambda user: users.setdefault(user.email, (1, user.email, user.password)) and 1)
     return rows
 
 
@@ -63,10 +71,19 @@ def test_any_json_object_never_crashes(client, memory_db, route, body):
     check_response(client.post(route, json=body))
 
 
+# Account routes: any object, as long as the password is text (a number as the
+# password is a recorded known bug in test_accounts.py)
+@settings(max_examples=60, suppress_health_check=[HealthCheck.function_scoped_fixture])
+@given(route=st.sampled_from(ACCOUNT_ROUTES),
+       body=st.fixed_dictionaries({}, optional={"email": json_values, "password": st.text(max_size=40)}))
+def test_account_bodies_never_crash(client, memory_db, route, body):
+    check_response(client.post(route, json=body))
+
+
 # Known bug: a body that is JSON but not an object, like [] or 5, crashes
 # with AttributeError ('list' object has no attribute 'get') and gives a 500
 @pytest.mark.xfail(raises=AttributeError, reason="request.get_json() is assumed to be a dict")
-@pytest.mark.parametrize("route", AUTH_ROUTES)
+@pytest.mark.parametrize("route", ALL_ROUTES)
 @pytest.mark.parametrize("body", [["abc123@psu.edu"], 5, "abc123@psu.edu", True])
 def test_json_that_is_not_an_object_is_400(client, memory_db, route, body):
     check_response(client.post(route, json=body))
@@ -97,6 +114,20 @@ def test_other_content_types_are_400(client, memory_db, route, content_type):
     assert response.status_code == 400 and response.is_json
 
 
+@pytest.mark.parametrize("content_type", ["text/plain", "application/x-www-form-urlencoded"])
+def test_set_password_other_content_types_are_400(client, memory_db, content_type):
+    response = client.post("/api/auth/set-password", data="email=a@psu.edu", content_type=content_type)
+    assert response.status_code == 400 and response.is_json
+
+
+# Known bug: login uses request.get_json() without silent=True, so a request
+# that isn't JSON gets Flask's HTML 415 page instead of a JSON error
+@pytest.mark.xfail(reason="login answers non-JSON requests with an HTML 415 page")
+def test_login_other_content_types_are_400(client, memory_db):
+    response = client.post("/api/auth/login", data="email=a@psu.edu", content_type="text/plain")
+    assert response.status_code == 400 and response.is_json
+
+
 @pytest.mark.parametrize("email", [
     "a" * 10_000 + "@psu.edu",                    # very long
     "abc123@psu.edu" + "\u0000",                   # null character
@@ -115,14 +146,19 @@ def test_odd_codes_are_rejected_cleanly(client, memory_db, code):
     assert response.status_code == 400
 
 
-# Deeply nested JSON must not crash the server
+# Deeply nested JSON must not crash the server.
+# Known bug on Python 3.11 and older: Python's JSON reader runs out of
+# recursion depth, and since get_json(silent=True) only catches bad JSON, the
+# request crashes with a 500. Python 3.12 and newer reject it cleanly.
+@pytest.mark.xfail(sys.version_info < (3, 12), raises=RecursionError,
+                   reason="deep JSON raises RecursionError on Python 3.11 and older")
 def test_deeply_nested_json(client, memory_db):
     body = '{"email": ' + "[" * 5000 + "]" * 5000 + "}"
     check_response(client.post("/api/auth/request-code", data=body, content_type="application/json"))
 
 
 @pytest.mark.parametrize("method", ["get", "put", "delete", "patch"])
-@pytest.mark.parametrize("route", AUTH_ROUTES)
+@pytest.mark.parametrize("route", ALL_ROUTES)
 def test_wrong_methods_are_405(client, route, method):
     assert getattr(client, method)(route).status_code == 405
 
@@ -158,9 +194,16 @@ def test_sql_in_email_is_stored_as_plain_text(client, monkeypatch, email):
 
 
 @pytest.mark.db
-def test_sql_in_user_fields_round_trips():
-    from models.user import User
+def test_sql_in_user_fields_round_trips(save_user):
     nasty = "Robert'); DROP TABLE users;--"
-    user = User(None, nasty, nasty, "555", "bobby@psu.edu", "male", nasty[:100], 2028, nasty, None)
-    row = db.get_user_by_id(user.id)
-    assert row[1] == nasty and row[2] == nasty and row[8] == nasty
+    _, user_id = save_user("bobby@psu.edu", first_name=nasty, last_name=nasty, major=nasty, city=nasty)
+    row = db.get_user_by_id(user_id)
+    assert row[3] == nasty and row[4] == nasty and row[9] == nasty and row[12] == nasty
+
+
+@pytest.mark.db
+def test_sql_in_login_is_harmless(client):
+    for email in INJECTIONS + ["' OR '1'='1", "x@psu.edu' --"]:
+        response = client.post("/api/auth/login", json={"email": email, "password": "' OR '1'='1"})
+        assert response.status_code == 400
+    assert db.get_user_by_email("victim@psu.edu") is None

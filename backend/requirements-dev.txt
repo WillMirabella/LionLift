@@ -1,4 +1,14 @@
--r requirements.txt
+# Everything the backend tests need, for CI and for running tests locally.
+# The app's own packages are listed here directly instead of with
+# "-r requirements.txt", because requirements.txt currently includes packages
+# that fail to install (jnius needs Cython, and others are Python 2 only).
+Flask==3.1.3
+Flask_Bcrypt==1.0.1
+flask_jwt_extended==4.7.1
+psycopg2==2.9.13
+python-dotenv==1.2.4
+
+# Testing tools (hypothesis 6.168.5 is the newest that still supports Python 3.10)
 pytest==9.1.1
 pytest-cov==7.1.0
-hypothesis==6.170.15
+hypothesis==6.168.5

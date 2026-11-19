@@ -33,9 +33,18 @@ settings.load_profile("ci" if os.environ.get("CI") else "default")
 
 # Column order of the users table, see create_relations in db.py
 USER_COLUMNS = (
-    "id", "first_name", "last_name", "phone", "email", "gender", "description",
-    "grad_year", "major", "schedule", "address", "preferred_payment", "car_id",
+    "id", "email", "password", "first_name", "last_name", "phone", "gender", "description",
+    "grad_year", "major", "schedule", "street", "city", "state", "zip", "latitude", "longitude",
+    "preferred_payment", "car_id",
 )
+
+
+# No test may ever send a real email: Gmail settings from a developer's
+# backend/.env are cleared for every test, so send_email only prints
+@pytest.fixture(autouse=True)
+def _no_real_email(monkeypatch):
+    monkeypatch.delenv("GMAIL_ADDRESS", raising=False)
+    monkeypatch.delenv("GMAIL_APP_PASSWORD", raising=False)
 
 
 # Opens a connection to the named database with the test settings
@@ -82,12 +91,13 @@ def _database_for_db_tests(request):
 # Builds a row in the same column order as the users table
 def _make_row(id, first="Test", last="User", gender=None, grad_year=None, major=None,
              payment=None, car_id=None, phone="5550000000", email=None, schedule=None,
-             address="1 Test Ln", description="test"):
+             street="1 Test Ln", description="test", latitude=None, longitude=None):
     values = {
-        "id": id, "first_name": first, "last_name": last, "phone": phone,
-        "email": email or f"user{id}@psu.edu", "gender": gender, "description": description,
-        "grad_year": grad_year, "major": major, "schedule": schedule, "address": address,
-        "preferred_payment": payment, "car_id": car_id,
+        "id": id, "email": email or f"user{id}@psu.edu", "password": None,
+        "first_name": first, "last_name": last, "phone": phone, "gender": gender,
+        "description": description, "grad_year": grad_year, "major": major, "schedule": schedule,
+        "street": street, "city": "Abington", "state": "PA", "zip": "19001",
+        "latitude": latitude, "longitude": longitude, "preferred_payment": payment, "car_id": car_id,
     }
     return tuple(values[column] for column in USER_COLUMNS)
 
@@ -117,3 +127,33 @@ def client():
     from app import app
     app.config["TESTING"] = True
     return app.test_client()
+
+
+# Builds a User with every field filled in, in the order User() takes them.
+# User doesn't save itself; call save_user to put it in the database.
+def _build_user(email="jd@psu.edu", password=None, **changes):
+    from models.user import User
+    fields = dict(first_name="John", last_name="Doe", phone="2155550100", gender="male",
+                  description="hi", grad_year=2028, major="Computer Science", street="1 School Ln",
+                  city="Abington", state="PA", zip="19001", latitude=40.1175, longitude=-75.1091,
+                  schedule=None)
+    fields.update(changes)
+    return User(email, password, **fields)
+
+
+@pytest.fixture
+def build_user():
+    return _build_user
+
+
+# Saves a user and returns (user, id). to_db returns the new id but doesn't
+# set user.id, so the id is set here for the tests that need it.
+def _save_user(email="jd@psu.edu", **changes):
+    user = _build_user(email, **changes)
+    user.id = user.to_db()
+    return user, user.id
+
+
+@pytest.fixture
+def save_user():
+    return _save_user
