@@ -145,20 +145,44 @@ def test_many_sign_ins_at_once(server, outbox):
     assert all(db.get_verification(email) is not None for email in emails)
 
 
+# ---- creating an account and signing in ----
+
+# The whole sign-up the app does: verify the email, set a password, then log in
+def test_sign_up_and_log_in(server, outbox):
+    email, password = "new1@psu.edu", "abc12345!"
+    assert call(server, "POST", "/api/auth/request-code", {"email": email})[0] == 200
+    assert call(server, "POST", "/api/auth/verify", {"email": email, "code": code_for(outbox, email)})[0] == 200
+    assert call(server, "POST", "/api/auth/set-password", {"email": email, "password": password})[0] == 201
+
+    status, body = call(server, "POST", "/api/auth/login", {"email": email, "password": password})
+    assert status == 200 and body["token"].count(".") == 2
+
+    status, body = call(server, "POST", "/api/auth/login", {"email": email, "password": "wrong123!"})
+    assert status == 400 and body["error"]
+
+
+# Students saved with a location show up on the map near where they live
+def test_saved_locations_show_on_the_map(server, save_user):
+    save_user("a@psu.edu", latitude=40.1175, longitude=-75.1091)
+    save_user("b@psu.edu", latitude=None, longitude=None)
+    status, points = call(server, "GET", "/api/users/all-locations")
+    assert status == 200 and len(points) == 1
+    assert abs(points[0][0] - 40.1175) <= 0.015 + 1e-9
+
+
 # ---- browsing (needs the #22/#23 users route) ----
 
-def test_new_users_show_up_in_browse_without_private_fields(server, outbox):
-    pytest.importorskip("routes.users")
-    from models.user import User
+def test_new_users_show_up_in_browse_without_private_fields(server, outbox, save_user):
+    pytest.importorskip("user_search")
 
     # Sign in, then save a profile the way the sign-up screen will
     for email, last in (("aa1@psu.edu", "Zimmer"), ("bb2@psu.edu", "Adams")):
         call(server, "POST", "/api/auth/request-code", {"email": email})
         call(server, "POST", "/api/auth/verify", {"email": email, "code": code_for(outbox, email)})
-        User(None, "Test", last, "2155550100", email, "female", "hi", 2028, "Biology", [(9, 17)] * 5)
+        save_user(email, last_name=last, gender="female", major="Biology", schedule=[(9, 17)] * 5)
 
     status, users = call(server, "GET", "/api/users/?sort=last_name")
     assert status == 200
     assert [user["last_name"] for user in users] == ["Adams", "Zimmer"]
     for user in users:
-        assert not {"phone", "email", "address"} & set(user)
+        assert not {"password", "phone", "email", "street", "zip"} & set(user)

@@ -46,6 +46,13 @@ def test_row_to_user():
     assert user["id"] == 0 and user["car_id"] == len(USER_COLUMNS) - 1
 
 
+@pytest.mark.parametrize("text, expected", [("40.1175", 40.1175), ("-75.1", -75.1), (None, None), ("", None), ("abc", None)])
+def test_row_to_user_reads_text_coordinates(text, expected):
+    row = [None] * len(USER_COLUMNS)
+    row[USER_COLUMNS.index("latitude")] = text
+    assert row_to_user(tuple(row))["latitude"] == expected
+
+
 def test_row_to_user_wrong_length():
     with pytest.raises(ValueError):
         row_to_user((1, 2, 3))

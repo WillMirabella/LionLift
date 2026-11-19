@@ -2,9 +2,9 @@ import pytest
 
 import db
 
-# Tests for routes/users.py, GET /api/users/ (issues #22, #23).
-# Skipped until that branch is merged.
-pytest.importorskip("routes.users")
+# Tests for GET /api/users/, browsing with filters and sorting (issues #22, #23).
+# Skipped until that branch, which adds user_search.py, is merged.
+pytest.importorskip("user_search")
 
 URL = "/api/users/"
 
@@ -31,9 +31,21 @@ def test_hides_phone_and_email(client, users):
         assert "phone" not in user and "email" not in user
 
 
-def test_hides_address(client, users):
+# The password hash and the parts of the address that pin down a home are
+# never sent; city and state are fine to show
+def test_hides_password_and_home_address(client, users):
     for user in client.get(URL).get_json():
-        assert "address" not in user
+        assert not {"password", "street", "zip"} & set(user)
+        assert user["city"] == "Abington" and user["state"] == "PA"
+
+
+# Coordinates are stored as text, and still count for distance
+def test_text_coordinates_are_used(client, monkeypatch, make_row):
+    rows = [make_row(1, latitude="40.1175", longitude="-75.1091"), make_row(2, latitude="not a number", longitude="1")]
+    monkeypatch.setattr(db, "get_all_users", lambda: rows)
+    data = client.get(URL + "?lat=40.1175&lon=-75.1091&sort=distance").get_json()
+    assert data[0]["id"] == 1 and data[0]["distance"] < 1
+    assert data[1]["id"] == 2 and data[1]["distance"] is None
 
 
 # With no sort given, results come back by last name: adams, Doe, Jones, Lee, Smith
@@ -88,9 +100,8 @@ def test_schema_change_is_500(client, monkeypatch, sample_rows):
 
 # Against the real test database
 @pytest.mark.db
-def test_reads_from_database(client):
-    from models.user import User
+def test_reads_from_database(client, save_user):
     for email, year in (("a@psu.edu", 2027), ("b@psu.edu", 2028)):
-        User(None, "Test", "User", "555", email, "female", "hi", year, "Biology", [(9, 17)] * 5)
+        save_user(email, grad_year=year, schedule=[(9, 17)] * 5)
     data = client.get(URL + "?sort=-grad_year").get_json()
     assert [user["grad_year"] for user in data] == [2028, 2027]

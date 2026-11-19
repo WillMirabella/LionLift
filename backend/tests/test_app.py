@@ -14,7 +14,8 @@ def test_example_route(client):
 
 def test_expected_routes_exist(client):
     rules = {rule.rule for rule in client.application.url_map.iter_rules()}
-    for expected in ("/", "/api/example/", "/api/auth/request-code", "/api/auth/verify"):
+    for expected in ("/", "/api/example/", "/api/auth/request-code", "/api/auth/verify",
+                     "/api/auth/set-password", "/api/auth/login", "/api/users/all-locations"):
         assert expected in rules
 
 
