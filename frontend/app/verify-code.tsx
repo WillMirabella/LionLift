@@ -19,7 +19,8 @@ import Stepper from "../components/stepper";
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function VerifyCodeScreen() {
-  const { email } = useLocalSearchParams();
+  const { email, mode } = useLocalSearchParams<{ email: string; mode?: string }>();
+  const isReset = mode === "reset";
   const [cooldown, setCooldown] = useState(60);
   const [errorText, setErrorText] = useState("");
 
@@ -32,7 +33,8 @@ export default function VerifyCodeScreen() {
     setCooldown(60);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/request-code`, {
+      const endpoint = isReset ? "request-reset" : "request-code";
+      const response = await fetch(`${API_URL}/api/auth/${endpoint}`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json',},
         body: JSON.stringify({ email: email }),
@@ -49,7 +51,8 @@ export default function VerifyCodeScreen() {
   // Trys to verify a verification code
   const handleVerifyCode = async (code: string) => {
     try {
-      const response = await fetch(`${API_URL}/api/auth/verify`, {
+      const endpoint = isReset ? "verify-reset" : "verify";
+      const response = await fetch(`${API_URL}/api/auth/${endpoint}`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json',},
         body: JSON.stringify({ email: email, code: code }),
@@ -64,7 +67,9 @@ export default function VerifyCodeScreen() {
         {
           router.replace({
             pathname: '/set-password',
-            params: { email: email },
+            params: isReset
+              ? { email: email, token: result['token'], mode: "reset" }
+              : { email: email, token: result['token'] },
           });
         }
     } catch (error) {
@@ -90,14 +95,16 @@ export default function VerifyCodeScreen() {
         <View style={{ flex: 1, backgroundColor: colors.secondary }}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}  style={{ flex: 1 }}>
           <View style={styles.sheet}>
-            <Stepper
-              step={2}
-              steps={5}
-            />
+            {!isReset && (
+              <Stepper
+                step={2}
+                steps={5}
+              />
+            )}
             <Text style={styles.heading}>Enter Code</Text>
 
             <View style={{gap: 6, marginVertical: 12}}>
-              <Text style={styles.text}>Enter the 6-Digit verfication code sent to: </Text>
+              <Text style={styles.text}>Enter the 6-Digit {isReset ? "reset" : "verification"} code sent to: </Text>
 
               <View style={{flexDirection: 'row', alignItems: 'center', gap: '6'}}>
                 <Ionicons name={"mail-outline"} size={24} color={colors.primary} /> 

@@ -14,10 +14,14 @@ import { KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Stepper from "../components/stepper";
 import BackButton from "../components/buttons/back-button";
+import { useLocalSearchParams } from "expo-router";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
+// Also used for "Forgot password?" when opened with mode=reset
 export default function VerifyEmailScreen() {
+  const { mode } = useLocalSearchParams<{ mode?: string }>();
+  const isReset = mode === "reset";
   const [email, setEmail] = useState("");
   const [errorText, setErrorText] = useState("");
 
@@ -36,10 +40,11 @@ export default function VerifyEmailScreen() {
 
     // Try to request a verification code
     try {
-      const response = await fetch(`${API_URL}/api/auth/request-code`, {
+      const endpoint = isReset ? "request-reset" : "request-code";
+      const response = await fetch(`${API_URL}/api/auth/${endpoint}`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json',},
-        body: JSON.stringify({ email: email }),
+        body: JSON.stringify({ email: normalizedEmail }),
       });
 
       const result = await response.json();
@@ -54,7 +59,7 @@ export default function VerifyEmailScreen() {
         }else{
           router.replace({
             pathname: '/verify-code',
-            params: { email: email },
+            params: isReset ? { email: normalizedEmail, mode: "reset" } : { email: normalizedEmail },
           });
         }
       }
@@ -80,11 +85,13 @@ export default function VerifyEmailScreen() {
             <BackButton
               onPress={goBack}
             />
-            <Stepper
-              step={1}
-              steps={5}
-            />
-            <Text style={styles.heading}>Verify Email</Text>
+            {!isReset && (
+              <Stepper
+                step={1}
+                steps={5}
+              />
+            )}
+            <Text style={styles.heading}>{isReset ? "Reset Password" : "Verify Email"}</Text>
             <CustomTextInput
               label="Penn State Email"
               placeholder="abc123@psu.edu"
@@ -97,7 +104,7 @@ export default function VerifyEmailScreen() {
             )}
 
             <BigButton
-              text="Send Verification Email"
+              text={isReset ? "Send Reset Code" : "Send Verification Email"}
               onPress={() => handleSendCode()}
             />
           </View>

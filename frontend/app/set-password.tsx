@@ -1,6 +1,7 @@
 import { router } from "expo-router/build/global-state/router";
 import { Fragment, useState } from "react";
 import {
+  Alert,
   Platform,
   StyleSheet,
   StatusBar,
@@ -14,14 +15,16 @@ import { KeyboardAvoidingView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import Stepper from "../components/stepper";
+import BackButton from "../components/buttons/back-button";
 import { useLocalSearchParams } from 'expo-router';
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function SetPasswordScreen() {
-  const { email } = useLocalSearchParams<{ email: string }>();
+  // token comes from verify-code, mode=reset means this is "Forgot password?" instead of sign up
+  const { token, mode } = useLocalSearchParams<{ email: string; token: string; mode?: string }>();
+  const isReset = mode === "reset";
   const [password, setPassword] = useState("");
-  const [,setEmail] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorText, setErrorText] = useState("");
 
@@ -29,15 +32,25 @@ export default function SetPasswordScreen() {
     if(!passwordsMatch()) setErrorText("Passwords must match");
     else if(!meetsRequirements(password)) setErrorText("Password must meet requirements");
     else{
-      const response = await fetch(`${API_URL}/api/auth/set-password`, {
+      const endpoint = isReset ? "reset-password" : "set-password";
+      const response = await fetch(`${API_URL}/api/auth/${endpoint}`, {
         method: 'POST',
-        headers: {'Content-Type': 'application/json',},
-        body: JSON.stringify({ email: email, password: password }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password: password }),
       });
       const result = await response.json();
       if (result['error']!=null){
         console.log(result['error']);
         setErrorText(result['error']);
+      }
+      else if (isReset) {
+        Alert.alert("Password reset", "You can now sign in with your new password.");
+        router.replace({
+          pathname: '/sign-in'
+        });
       }
       else{
         router.replace({
@@ -45,6 +58,15 @@ export default function SetPasswordScreen() {
         });
       }
     }
+  }
+
+  // The code was already used up on verify-code, so going back means starting from the email screen
+  // (also how the user recovers if their token expired)
+  function goBack(){
+    router.replace({
+      pathname: '/verify-email',
+      params: isReset ? { mode: "reset" } : {},
+    });
   }
 
   function passwordsMatch(){
@@ -75,11 +97,16 @@ export default function SetPasswordScreen() {
         <View style={{ flex: 1, backgroundColor: colors.secondary }}>
           <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}  style={{ flex: 1 }}>
             <View style={styles.sheet}>
-              <Stepper
-                step={3}
-                steps={5}
+              <BackButton
+                onPress={goBack}
               />
-              <Text style={styles.heading}>Set Password</Text>
+              {!isReset && (
+                <Stepper
+                  step={3}
+                  steps={5}
+                />
+              )}
+              <Text style={styles.heading}>{isReset ? "New Password" : "Set Password"}</Text>
 
               <CustomTextInput
                 label="Password"
@@ -157,7 +184,7 @@ export default function SetPasswordScreen() {
                 <Text style={styles.errorText}>{errorText}</Text>
               )}
               <BigButton
-                text="Set Password"
+                text={isReset ? "Reset Password" : "Set Password"}
                 onPress={() => handleSetPassword()}
               />
             </View>
