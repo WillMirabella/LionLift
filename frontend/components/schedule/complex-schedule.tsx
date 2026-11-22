@@ -3,7 +3,7 @@ import { colors } from "../../constants/colors";
 import { usePanGesture, GestureDetector, GestureHandlerRootView, Gesture, Touchable } from 'react-native-gesture-handler';
 import { useState } from "react";
 
-var exampleSchedule = [[12, 15], [13, 16], [9, 18], null, [12, 13]];
+var schedule = [[12.5, 15], [13, 16], [9, 18], null, [12, 13]];
 
 export default function ComplexSchedule() {
   const startTime = 8; // 8 AM
@@ -41,48 +41,65 @@ export default function ComplexSchedule() {
 
   // generate grid cells for the flat list
   
-  for (let dayIndex = 0; dayIndex < 5; dayIndex++) {
+  for (let day = 0; day < 5; day++) {
     const timeSlots = [];
     for (let hour = startTime; hour <= endTime; hour += 0.5) {
-      timeSlots.push({ id: hour, filled: (exampleSchedule[dayIndex] && exampleSchedule[dayIndex]![0] <= hour && exampleSchedule[dayIndex]![1] > hour) });
+      timeSlots.push({ id: hour, filled: (schedule[day] && schedule[day]![0] <= hour && schedule[day]![1] > hour) });
     }
 
     let [slots, setSlots] = useState(timeSlots);
 
     const slotHeight = 15; // Height of each slot in pixels
 
+    const indexToTime = (index: number) => {
+      const time = startTime + index * 0.5 - 0.5;
+      return time;
+    }
+
+    const updateFilledSlots = () => {
+      const newSlots = slots.map((slot, index) => {
+        if (schedule[day] === null) {
+          return { ...slot, filled: false };
+        }
+        return { ...slot, filled: (schedule[day]![0] <= indexToTime(index) && schedule[day]![1] > indexToTime(index)) };
+      });
+      setSlots(newSlots);
+    }
+
+    var movingDown = false;
+
     const handleTouchMove = (e: any) => {
-      const slotIndex = Math.floor(e.nativeEvent.locationY / slotHeight);
+      const slotIndex = indexToTime(Math.floor(e.nativeEvent.locationY / slotHeight));
+      console.log(slotIndex);
       // Verify that the slotIndex is within bounds
       if (slotIndex >= 0 && slotIndex < slots.length) {
         const newSlots = [...slots];
 
-        if (exampleSchedule[dayIndex] === null) {
-          exampleSchedule[dayIndex] = [slotIndex, slotIndex]; // Initialize the schedule for this day
-          newSlots[slotIndex].filled = true; // Fill the touched slot
-        } else {
-          // the following two conditions handle expanding the schedule
-          if (slotIndex > exampleSchedule[dayIndex]![1]) {
-            for (let i = exampleSchedule[dayIndex]![0]; i <= slotIndex; i++) {
-              newSlots[i].filled = true;
-            }
-            exampleSchedule[dayIndex]![1] = slotIndex; // Update the end time of the schedule
-          } 
-          else if (slotIndex < exampleSchedule[dayIndex]![0]) {
-            for (let i = slotIndex; i < exampleSchedule[dayIndex]![1]; i++) {
-              newSlots[i].filled = true;
-            }
-            exampleSchedule[dayIndex]![0] = slotIndex; // Update the start time of the schedule
+        // day is currently empty
+        if (schedule[day] === null) {
+          schedule[day] = [slotIndex, slotIndex]; // Initialize the schedule for this day
+        } 
+        else {
+          const mid = (schedule[day]![0] + schedule[day]![1]) / 2;
+
+          if (slotIndex < mid) {
+            schedule[day]![0] = slotIndex; // Update the start time
+          }
+          else if (slotIndex > mid) {
+            schedule[day]![1] = slotIndex; // Update the end time
+          }
+          else if (slotIndex == mid) {
+            schedule[day] = null; // Clear the schedule for this day
           }
         }
 
-        setSlots(newSlots);
+        updateFilledSlots();
       }
     };
 
     grid.push(
       <Pressable 
-        key={`day-${dayIndex}`} 
+        key={`day-${day}`} 
         style={styles.gridCol}
         onTouchMove={handleTouchMove}
         onTouchStart={handleTouchMove}
@@ -93,7 +110,7 @@ export default function ComplexSchedule() {
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
             // pointerEvents="none" line is absolutely required or else the onTouch event will return the pointer event on this child view instead of the parent
-            <View pointerEvents="none" style={item.filled ? styles.gridCellFilled : (dayIndex == 4 ? [styles.gridCellBordered, { borderRightWidth: 0 }] : styles.gridCellBordered)}/>
+            <View pointerEvents="none" style={item.filled ? styles.gridCellFilled : (day == 4 ? [styles.gridCellBordered, { borderRightWidth: 0 }] : styles.gridCellBordered)}/>
           )}
           keyExtractor={(item) => item.id.toString()}
         />
