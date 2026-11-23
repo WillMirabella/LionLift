@@ -4,6 +4,7 @@ from flask_jwt_extended import JWTManager
 from routes.example import example_bp
 from routes.auth import auth_bp
 from routes.users import users_bp
+from routes.browse import browse_bp
 from routes.admin import admin_bp
 import db
 from models.user import User
@@ -17,6 +18,7 @@ JWTManager().init_app(app)
 app.register_blueprint(example_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(users_bp)
+app.register_blueprint(browse_bp)
 app.register_blueprint(admin_bp)
 
 @app.route("/")

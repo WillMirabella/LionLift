@@ -130,6 +130,20 @@ def test_number_as_password_is_400(client, users):
     assert client.post(SET, json={"email": EMAIL, "password": 12345678}).status_code == 400
 
 
+# An email that isn't text passes the "missing" check and goes straight to the
+# database: ["abc123@psu.edu"] or {"a": 1} gives a 500, and [null] is saved as
+# an account whose email is the text "{NULL}"
+@pytest.mark.xfail(reason="email isn't checked to be text before the database lookup")
+@pytest.mark.parametrize("route", [SET, LOGIN])
+def test_email_that_is_not_text_is_400(client, monkeypatch, route):
+    looked_up = []
+    monkeypatch.setattr(db, "get_user_by_email", lambda email: looked_up.append(email))
+    monkeypatch.setattr(db, "insert_user", lambda user: 1)
+    response = client.post(route, json={"email": [None], "password": GOOD})
+    assert response.status_code == 400
+    assert looked_up == []
+
+
 # Users created without a password (example.py does this) crash login
 @pytest.mark.xfail(raises=(TypeError, ValueError), reason="check_password_hash gets None")
 def test_login_for_user_without_password_is_400(client, monkeypatch):

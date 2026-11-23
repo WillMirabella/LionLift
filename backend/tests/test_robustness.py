@@ -71,11 +71,11 @@ def test_any_json_object_never_crashes(client, memory_db, route, body):
     check_response(client.post(route, json=body))
 
 
-# Account routes: any object, as long as the password is text (a number as the
-# password is a recorded known bug in test_accounts.py)
+# Account routes: any object, as long as the email and password are text (an
+# email or password that isn't text is a recorded known bug in test_accounts.py)
 @settings(max_examples=60, suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(route=st.sampled_from(ACCOUNT_ROUTES),
-       body=st.fixed_dictionaries({}, optional={"email": json_values, "password": st.text(max_size=40)}))
+       body=st.fixed_dictionaries({}, optional={"email": st.text(max_size=60), "password": st.text(max_size=40)}))
 def test_account_bodies_never_crash(client, memory_db, route, body):
     check_response(client.post(route, json=body))
 
