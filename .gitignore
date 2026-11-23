@@ -4,3 +4,6 @@ venv/
 __pycache__/
 .pyc 
 .env
+.pytest_cache/
+.coverage
+coverage.md
