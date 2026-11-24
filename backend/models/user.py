@@ -1,5 +1,5 @@
 from models.car import Car
-from schedule_similarity import schedule_similarity
+from services.schedule_similarity import schedule_similarity
 import db
 
 class User:
