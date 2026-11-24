@@ -1,0 +1,11 @@
+# Settings for the test coverage report (python -m pytest --cov)
+[run]
+branch = True
+source = .
+omit =
+    tests/*
+    example.py
+
+[report]
+show_missing = True
+skip_covered = True

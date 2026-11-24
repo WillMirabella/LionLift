@@ -4,6 +4,8 @@ from flask_jwt_extended import JWTManager
 from routes.example import example_bp
 from routes.auth import auth_bp
 from routes.users import users_bp
+from routes.browse import browse_bp
+from routes.admin import admin_bp
 import db
 from models.user import User
 from services.location import miles_away
@@ -17,6 +19,8 @@ JWTManager().init_app(app)
 app.register_blueprint(example_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(users_bp)
+app.register_blueprint(browse_bp)
+app.register_blueprint(admin_bp)
 
 print(miles_away(40.22840, -74.93234, 39.95287, -75.16548))
 

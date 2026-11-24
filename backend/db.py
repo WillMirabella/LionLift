@@ -187,6 +187,21 @@ def get_users_locations():
         if lat is not None and lng is not None
     ]
 
+# Returns every row in the users relation, ordered by id
+def get_all_users():
+    query = """
+            SELECT * 
+            FROM users 
+            ORDER BY id;
+        """
+    conn = get_connection()
+    curr = conn.cursor()
+    curr.execute(query)
+    rows = curr.fetchall()
+    conn.close()
+
+    return rows
+
 # Inserts a new car into the cars relation and returns the new id
 def insert_car(c):
     query = """
