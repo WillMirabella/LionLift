@@ -1,9 +1,9 @@
 from models.car import Car
-from schedule_similarity import schedule_similarity
+from services.schedule_similarity import schedule_similarity
 import db
 
 class User:
-    def __init__(self, email, password, first_name=None, last_name=None, phone=None, gender=None, description=None, grad_year=None, major=None, street=None, city=None, state=None, zip=None, latitude=None, longitude=None, schedule=None, preferred_payment=None):
+    def __init__(self, email, password, first_name=None, last_name=None, phone=None, gender=None, description=None, grad_year=None, major=None, street=None, city=None, state=None, zip=None, latitude=None, longitude=None, schedule=None, preferred_payment=None, car_id=None):
         self.email = email
         self.password = password
         self.first_name = first_name
@@ -21,8 +21,8 @@ class User:
         self.zip = zip
         self.latitude = latitude
         self.longitude = longitude
-        self.preferred_payment = None
-        self.car_id = None
+        self.preferred_payment = preferred_payment
+        self.car_id = car_id
 
     def __str__(self):
         # Format schedule
@@ -60,7 +60,7 @@ class User:
     def make_driver(self, preferred_payment, car_id):
         self.preferred_payment = preferred_payment
         self.car_id = car_id
-
+        
         db.update_user(self)
 
     

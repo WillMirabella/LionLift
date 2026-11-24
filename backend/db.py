@@ -117,19 +117,14 @@ def insert_user(u):
 # Updates a row of the user relation
 def update_user(u):
     query = """
-        INSERT INTO users (
-            email, password, first_name, last_name, phone, gender,
-            description, grad_year, major, street, city, state, zip,
-            longitude, latitude, schedule, preferred_payment, car_id
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        RETURNING id;
+        UPDATE users
+        SET first_name = %s, last_name = %s, phone = %s, gender = %s, grad_year = %s, major = %s, street = %s, city = %s, state = %s, zip = %s, longitude = %s, latitude = %s, schedule = %s, preferred_payment = %s, car_id = %s
+        WHERE email = %s;
     """
     new_user_data = (
-        u.first_name, u.last_name, u.phone, u.email, u.gender,
-        u.description, u.grad_year, u.major, u.street, u.city, u.state,
-        u.zip, u.longitude, u.latitude, u.schedule, u.preferred_payment,
-        u.car_id, u.id
+        u.first_name, u.last_name, u.phone, u.gender, u.grad_year, u.major, u.street, u.city, 
+        u.state, u.zip, u.longitude, u.latitude, u.schedule, u.preferred_payment, u.car_id, 
+        u.email
     )
     conn = get_connection()
     curr = conn.cursor()
