@@ -92,7 +92,7 @@ export default function VerifyCodeScreen() {
           <View style={styles.sheet}>
             <Stepper
               step={2}
-              steps={5}
+              steps={7}
             />
             <Text style={styles.heading}>Enter Code</Text>
 

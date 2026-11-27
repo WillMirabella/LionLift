@@ -11,6 +11,11 @@ export default function Root() {
         <Stack.Screen name="verify-code" options={{ headerShown: false}} />
         <Stack.Screen name="set-password" options={{ headerShown: false }} />
         <Stack.Screen name="(app)" options={{ headerShown: false }} />
+        <Stack.Screen name="create-profile" options={{ headerShown: false }} />
+        <Stack.Screen name="create-address" options={{ headerShown: false }} />
+        <Stack.Screen name="create-schedule" options={{ headerShown: false }} />
+        <Stack.Screen name="create-car" options={{ headerShown: false }} />
+        <Stack.Screen name="welcome" options={{ headerShown: false }} />
     </Stack>
   );
 }
